@@ -105,9 +105,21 @@ export default function ZeroGravityShowcase() {
   const timerRef = useRef(null);
   const progressTimerRef = useRef(null);
   const showcaseRef = useRef(null);
+  const thumbRefs = useRef([]);
 
   const currentSlide = ZERO_GRAVITY_SLIDES[currentIndex];
   const linkedProduct = products.find((p) => p.id === currentSlide.productId) || products[0];
+
+  // Auto-scroll thumbnail bar so active slide stays centered
+  useEffect(() => {
+    if (thumbRefs.current[currentIndex]) {
+      thumbRefs.current[currentIndex].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [currentIndex]);
 
   // Auto-play timer (pauses when user is interacting with 3D Zero-G model or paused)
   useEffect(() => {
@@ -255,6 +267,19 @@ export default function ZeroGravityShowcase() {
             opacity: 0.6;
             transform: scale(1.08);
           }
+        }
+        @keyframes zgContentCrossfade {
+          0% {
+            opacity: 0.15;
+            transform: translateY(6px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .zg-content-fade {
+          animation: zgContentCrossfade 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .zg-gradient-title {
@@ -488,9 +513,8 @@ export default function ZeroGravityShowcase() {
             transition: isPlaying ? 'transform 0.5s ease-out' : 'transform 0.15s ease-out'
           }}
         >
-          {/* Active 16:9 Zero-Gravity Master Design Layer (Original Crisp 8K Quality & Perfect Branding) */}
+          {/* Active 16:9 Zero-Gravity Master Design Slides with Ultra-Smooth Luxury Crossfade */}
           <div
-            key={currentIndex}
             style={{
               position: 'absolute',
               inset: 0,
@@ -500,33 +524,66 @@ export default function ZeroGravityShowcase() {
               animation: 'zeroGravityFloat 6s ease-in-out infinite'
             }}
           >
-            <img
-              src={currentSlide.image}
-              alt={currentSlide.title}
-              decoding="async"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
-                animation: 'subtleScale 6s ease-out forwards',
-                filter: 'brightness(1.02) contrast(1.02)'
-              }}
-            />
+            {ZERO_GRAVITY_SLIDES.map((slide, idx) => {
+              const isActive = idx === currentIndex;
+              return (
+                <div
+                  key={slide.productId}
+                  aria-hidden={!isActive}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: isActive ? 1 : 0,
+                    transform: isActive ? 'scale(1)' : 'scale(1.045)',
+                    transition: 'opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                    pointerEvents: isActive ? 'auto' : 'none',
+                    zIndex: isActive ? 2 : 1,
+                    willChange: 'opacity, transform'
+                  }}
+                >
+                  <img
+                    src={slide.image}
+                    alt={slide.title}
+                    loading={idx === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                      filter: 'brightness(1.02) contrast(1.02)'
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           {/* Real Moving 3D Zero-Gravity Particles (Three.js WebGL Engine) */}
-          {currentIndex === 0 && (
-            <React.Suspense fallback={null}>
-              <ZeroGravityCanvasEngine
-                accentColor={currentSlide.accentColor}
-                onInteractChange={(interacting) => {
-                  setIs3DInteracting(interacting);
-                  if (interacting) setIsPlaying(false);
-                }}
-              />
-            </React.Suspense>
-          )}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 10,
+              opacity: currentIndex === 0 ? 1 : 0,
+              pointerEvents: currentIndex === 0 ? 'auto' : 'none',
+              transition: 'opacity 0.6s ease'
+            }}
+          >
+            {currentIndex === 0 && (
+              <React.Suspense fallback={null}>
+                <ZeroGravityCanvasEngine
+                  accentColor={currentSlide.accentColor}
+                  onInteractChange={(interacting) => {
+                    setIs3DInteracting(interacting);
+                    if (interacting) setIsPlaying(false);
+                  }}
+                />
+              </React.Suspense>
+            )}
+          </div>
 
           {/* Vignette & Cinematic Gradients */}
           <div
@@ -557,7 +614,7 @@ export default function ZeroGravityShowcase() {
             }}
           >
             {/* Tag Badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', pointerEvents: 'auto' }}>
+            <div key={`top-tag-${currentIndex}`} className="zg-content-fade" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', pointerEvents: 'auto' }}>
               <div
                 style={{
                   display: 'inline-flex',
@@ -669,66 +726,68 @@ export default function ZeroGravityShowcase() {
                 animation: 'zeroGravityFloat 6s ease-in-out infinite'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <span
+              <div key={`desktop-info-${currentIndex}`} className="zg-content-fade">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: currentSlide.accentColor
+                    }}
+                  >
+                    {currentSlide.subtitle}
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>•</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#FFD700', fontSize: '12px' }}>
+                    <Star style={{ width: '13px', height: '13px', fill: '#FFD700' }} />
+                    <span style={{ fontWeight: 800 }}>{linkedProduct?.rating || 4.9}</span>
+                  </div>
+                </div>
+
+                <h3
                   style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: currentSlide.accentColor
+                    fontSize: 'clamp(19px, 2.5vw, 28px)',
+                    fontWeight: 800,
+                    letterSpacing: '-0.02em',
+                    color: '#FFFFFF',
+                    margin: '0 0 6px 0',
+                    lineHeight: 1.15
                   }}
                 >
-                  {currentSlide.subtitle}
-                </span>
-                <span style={{ color: 'rgba(255,255,255,0.4)' }}>•</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#FFD700', fontSize: '12px' }}>
-                  <Star style={{ width: '13px', height: '13px', fill: '#FFD700' }} />
-                  <span style={{ fontWeight: 800 }}>{linkedProduct?.rating || 4.9}</span>
+                  {currentSlide.title}
+                </h3>
+
+                <p
+                  style={{
+                    fontSize: 'clamp(11.5px, 1.2vw, 13px)',
+                    color: '#D4CDC5',
+                    margin: '0 0 10px 0',
+                    lineHeight: 1.5,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {currentSlide.quote}
+                </p>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '11.5px',
+                    color: '#A89F95',
+                    paddingTop: '6px',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}
+                >
+                  <CheckCircle2 style={{ width: '14px', height: '14px', color: currentSlide.accentColor }} />
+                  <span>Active: <strong>{currentSlide.highlight}</strong></span>
                 </div>
-              </div>
-
-              <h3
-                style={{
-                  fontSize: 'clamp(19px, 2.5vw, 28px)',
-                  fontWeight: 800,
-                  letterSpacing: '-0.02em',
-                  color: '#FFFFFF',
-                  margin: '0 0 6px 0',
-                  lineHeight: 1.15
-                }}
-              >
-                {currentSlide.title}
-              </h3>
-
-              <p
-                style={{
-                  fontSize: 'clamp(11.5px, 1.2vw, 13px)',
-                  color: '#D4CDC5',
-                  margin: '0 0 10px 0',
-                  lineHeight: 1.5,
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
-                }}
-              >
-                {currentSlide.quote}
-              </p>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '11.5px',
-                  color: '#A89F95',
-                  paddingTop: '6px',
-                  borderTop: '1px solid rgba(255, 255, 255, 0.08)'
-                }}
-              >
-                <CheckCircle2 style={{ width: '14px', height: '14px', color: currentSlide.accentColor }} />
-                <span>Active: <strong>{currentSlide.highlight}</strong></span>
               </div>
             </div>
 
@@ -746,7 +805,7 @@ export default function ZeroGravityShowcase() {
               }}
             >
               {linkedProduct && (
-                <div style={{ textAlign: 'right', marginRight: '6px' }}>
+                <div key={`desktop-price-${currentIndex}`} className="zg-content-fade" style={{ textAlign: 'right', marginRight: '6px' }}>
                   <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#A89F95', fontWeight: 600 }}>
                     Price
                   </div>
@@ -876,155 +935,157 @@ export default function ZeroGravityShowcase() {
 
         {/* Dedicated Mobile Product Info Card (Docked directly under theatre on mobile) */}
         <div className="zg-mobile-card">
-          {/* Category Subtitle & Rating Row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span
-                style={{
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  backgroundColor: currentSlide.accentColor,
-                  display: 'inline-block',
-                  boxShadow: `0 0 8px ${currentSlide.accentColor}`
-                }}
-              />
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  color: currentSlide.accentColor
-                }}
-              >
-                {currentSlide.subtitle}
+          <div key={`mobile-info-${currentIndex}`} className="zg-content-fade">
+            {/* Category Subtitle & Rating Row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span
+                  style={{
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    backgroundColor: currentSlide.accentColor,
+                    display: 'inline-block',
+                    boxShadow: `0 0 8px ${currentSlide.accentColor}`
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: currentSlide.accentColor
+                  }}
+                >
+                  {currentSlide.subtitle}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#FFD700', fontSize: '12px' }}>
+                  <Star style={{ width: '13px', height: '13px', fill: '#FFD700' }} />
+                  <span style={{ fontWeight: 800 }}>{linkedProduct?.rating || 4.9}</span>
+                </div>
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    color: '#A89F95',
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    fontWeight: 700
+                  }}
+                >
+                  {currentIndex + 1} / {ZERO_GRAVITY_SLIDES.length}
+                </span>
+              </div>
+            </div>
+
+            {/* Product Title */}
+            <h3
+              style={{
+                fontSize: '19px',
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: '#FFFFFF',
+                margin: '0 0 6px 0',
+                lineHeight: 1.2
+              }}
+            >
+              {currentSlide.title}
+            </h3>
+
+            {/* Botanical Quote / Description */}
+            <p
+              style={{
+                fontSize: '12px',
+                color: '#D4CDC5',
+                margin: '0 0 10px 0',
+                lineHeight: 1.45
+              }}
+            >
+              {currentSlide.quote}
+            </p>
+
+            {/* Active Botanicals Highlight */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '11px',
+                color: '#A89F95',
+                padding: '8px 10px',
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                borderRadius: '8px',
+                marginBottom: '14px',
+                border: '1px solid rgba(255, 255, 255, 0.06)'
+              }}
+            >
+              <CheckCircle2 style={{ width: '13px', height: '13px', color: currentSlide.accentColor, flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                Active: <strong style={{ color: '#FFFFFF' }}>{currentSlide.highlight}</strong>
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#FFD700', fontSize: '12px' }}>
-                <Star style={{ width: '13px', height: '13px', fill: '#FFD700' }} />
-                <span style={{ fontWeight: 800 }}>{linkedProduct?.rating || 4.9}</span>
+            {/* Price & Action Buttons */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px',
+                paddingTop: '4px'
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '9.5px', textTransform: 'uppercase', color: '#A89F95', fontWeight: 600, letterSpacing: '0.05em' }}>
+                  Price
+                </div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.1 }}>
+                  {linkedProduct ? formatPrice(linkedProduct.pricePKR, linkedProduct.priceUSD) : 'Rs. 1,599'}
+                </div>
               </div>
-              <span
-                style={{
-                  fontSize: '10.5px',
-                  color: '#A89F95',
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  padding: '2px 8px',
-                  borderRadius: '9999px',
-                  fontWeight: 700
-                }}
-              >
-                {currentIndex + 1} / {ZERO_GRAVITY_SLIDES.length}
-              </span>
-            </div>
-          </div>
 
-          {/* Product Title */}
-          <h3
-            style={{
-              fontSize: '19px',
-              fontWeight: 800,
-              letterSpacing: '-0.02em',
-              color: '#FFFFFF',
-              margin: '0 0 6px 0',
-              lineHeight: 1.2
-            }}
-          >
-            {currentSlide.title}
-          </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => linkedProduct && setActiveProduct(linkedProduct)}
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    color: '#FFFFFF',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Eye style={{ width: '13px', height: '13px' }} />
+                  <span>Details</span>
+                </button>
 
-          {/* Botanical Quote / Description */}
-          <p
-            style={{
-              fontSize: '12px',
-              color: '#D4CDC5',
-              margin: '0 0 10px 0',
-              lineHeight: 1.45
-            }}
-          >
-            {currentSlide.quote}
-          </p>
-
-          {/* Active Botanicals Highlight */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '11px',
-              color: '#A89F95',
-              padding: '8px 10px',
-              backgroundColor: 'rgba(255, 255, 255, 0.04)',
-              borderRadius: '8px',
-              marginBottom: '14px',
-              border: '1px solid rgba(255, 255, 255, 0.06)'
-            }}
-          >
-            <CheckCircle2 style={{ width: '13px', height: '13px', color: currentSlide.accentColor, flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Active: <strong style={{ color: '#FFFFFF' }}>{currentSlide.highlight}</strong>
-            </span>
-          </div>
-
-          {/* Price & Action Buttons */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '10px',
-              paddingTop: '4px'
-            }}
-          >
-            <div>
-              <div style={{ fontSize: '9.5px', textTransform: 'uppercase', color: '#A89F95', fontWeight: 600, letterSpacing: '0.05em' }}>
-                Price
+                <button
+                  onClick={handleAddToCart}
+                  className="btn-primary zg-action-btn"
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    borderRadius: '10px'
+                  }}
+                >
+                  <ShoppingBag style={{ width: '14px', height: '14px' }} />
+                  <span>Order Now</span>
+                </button>
               </div>
-              <div style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.1 }}>
-                {linkedProduct ? formatPrice(linkedProduct.pricePKR, linkedProduct.priceUSD) : 'Rs. 1,599'}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                onClick={() => linkedProduct && setActiveProduct(linkedProduct)}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  color: '#FFFFFF',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  cursor: 'pointer'
-                }}
-              >
-                <Eye style={{ width: '13px', height: '13px' }} />
-                <span>Details</span>
-              </button>
-
-              <button
-                onClick={handleAddToCart}
-                className="btn-primary zg-action-btn"
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  borderRadius: '10px'
-                }}
-              >
-                <ShoppingBag style={{ width: '14px', height: '14px' }} />
-                <span>Order Now</span>
-              </button>
             </div>
           </div>
         </div>
@@ -1038,6 +1099,7 @@ export default function ZeroGravityShowcase() {
             return (
               <button
                 key={slide.productId}
+                ref={(el) => (thumbRefs.current[idx] = el)}
                 onClick={() => {
                   setCurrentIndex(idx);
                   setProgress(0);
