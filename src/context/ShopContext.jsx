@@ -90,7 +90,6 @@ export function ShopProvider({ children }) {
   const [products, setProducts] = useState(() => {
     const deletedIds = getDeletedProductIds();
     const saved = localStorage.getItem('ayaana_products');
-    const isCloudSynced = localStorage.getItem('ayaana_cloud_synced');
 
     if (!saved) {
       return PRODUCTS.filter((p) => !deletedIds.has(p.id) && !DEPRECATED_PRODUCT_IDS.has(p.id));
@@ -100,13 +99,8 @@ export function ShopProvider({ children }) {
       const parsed = JSON.parse(saved);
       // Clean up deprecated template items if present, AND any deleted IDs
       const cleaned = parsed.filter(
-        (p) => !DEPRECATED_PRODUCT_IDS.has(p.id) && !deletedIds.has(p.id) && !p.id.startsWith('__')
+        (p) => !DEPRECATED_PRODUCT_IDS.has(p.id) && !deletedIds.has(p.id)
       );
-
-      // If we have already synced with cloud, trust the cloud catalog completely! Do not resurrect deleted products!
-      if (isCloudSynced) {
-        return cleaned;
-      }
 
       // Only import new official products if they were NEVER deleted by the admin
       const existingIds = new Set(cleaned.map((p) => p.id));
@@ -115,6 +109,7 @@ export function ShopProvider({ children }) {
       );
 
       const finalProducts = [...cleaned, ...missingFromOfficial];
+      // Immediately scrub old cached template products from localStorage
       localStorage.setItem('ayaana_products', JSON.stringify(finalProducts));
       return finalProducts;
     } catch {
@@ -222,98 +217,16 @@ export function ShopProvider({ children }) {
   useEffect(() => { localStorage.setItem('ayaana_reviews', JSON.stringify(siteReviews)); }, [siteReviews]);
   useEffect(() => { localStorage.setItem('ayaana_portrait_products', JSON.stringify(portraitProductIds)); }, [portraitProductIds]);
 
-  // Cloud sync helper for site settings & customization
-  const saveSettingsToCloud = async (partial) => {
-    try {
-      const currentDesc = localStorage.getItem('ayaana_cloud_settings_cache');
-      let currentObj = {};
-      if (currentDesc) {
-        try { currentObj = JSON.parse(currentDesc); } catch {}
-      }
-
-      const merged = {
-        heroSettings,
-        transformationModel,
-        siteReviews,
-        portraitProductIds,
-        deletedProductIds: Array.from(getDeletedProductIds()),
-        ...currentObj,
-        ...partial
-      };
-
-      const jsonStr = JSON.stringify(merged);
-      localStorage.setItem('ayaana_cloud_settings_cache', jsonStr);
-
-      await supabaseQuery('products', {
-        method: 'POST',
-        prefer: 'resolution=merge-duplicates',
-        body: {
-          id: '__site_settings__',
-          name: 'System Settings',
-          category: 'system',
-          category_name: 'System',
-          price_pkr: 0,
-          image: '/assets/logo.png',
-          description: jsonStr
-        }
-      });
-    } catch (err) {
-      console.warn("Could not save settings to cloud:", err);
-    }
-  };
-
-  const updateHeroSettings = (updates) => {
-    setHeroSettings((prev) => {
-      const next = { ...prev, ...updates };
-      localStorage.setItem('ayaana_hero_settings', JSON.stringify(next));
-      saveSettingsToCloud({ heroSettings: next });
-      return next;
-    });
-  };
-
-  const updateTransformationModel = (updates) => {
-    setTransformationModel((prev) => {
-      const next = { ...prev, ...updates };
-      localStorage.setItem('ayaana_transformation_model', JSON.stringify(next));
-      saveSettingsToCloud({ transformationModel: next });
-      return next;
-    });
-  };
-
-  const updatePortraitProductIds = (ids) => {
-    setPortraitProductIds(ids);
-    localStorage.setItem('ayaana_portrait_products', JSON.stringify(ids));
-    saveSettingsToCloud({ portraitProductIds: ids });
-  };
-
+  const updateHeroSettings = (updates) => setHeroSettings(prev => ({ ...prev, ...updates }));
+  const updateTransformationModel = (updates) => setTransformationModel(prev => ({ ...prev, ...updates }));
+  const updatePortraitProductIds = (ids) => setPortraitProductIds(ids);
   const addReview = (review) => {
     const newReview = { ...review, id: Date.now(), verified: true };
-    setSiteReviews((prev) => {
-      const next = [newReview, ...prev];
-      localStorage.setItem('ayaana_reviews', JSON.stringify(next));
-      saveSettingsToCloud({ siteReviews: next });
-      return next;
-    });
+    setSiteReviews(prev => [newReview, ...prev]);
     return newReview;
   };
-
-  const deleteReview = (reviewId) => {
-    setSiteReviews((prev) => {
-      const next = prev.filter((r) => r.id !== reviewId);
-      localStorage.setItem('ayaana_reviews', JSON.stringify(next));
-      saveSettingsToCloud({ siteReviews: next });
-      return next;
-    });
-  };
-
-  const updateReview = (reviewId, updates) => {
-    setSiteReviews((prev) => {
-      const next = prev.map((r) => (r.id === reviewId ? { ...r, ...updates } : r));
-      localStorage.setItem('ayaana_reviews', JSON.stringify(next));
-      saveSettingsToCloud({ siteReviews: next });
-      return next;
-    });
-  };
+  const deleteReview = (reviewId) => setSiteReviews(prev => prev.filter(r => r.id !== reviewId));
+  const updateReview = (reviewId, updates) => setSiteReviews(prev => prev.map(r => r.id === reviewId ? { ...r, ...updates } : r));
 
   // Multiple Admin Management State
   const [adminsList, setAdminsList] = useState(() => {
@@ -417,80 +330,17 @@ export function ShopProvider({ children }) {
   useEffect(() => {
     let isMounted = true;
 
-    // 1. Sync Site Settings (hero, transformation model, reviews, deleted product IDs)
-    async function syncSettingsFromCloud() {
-      try {
-        const { data, error } = await supabaseQuery('products?id=eq.__site_settings__&select=description');
-        if (!error && Array.isArray(data) && data[0]?.description) {
-          const parsed = typeof data[0].description === 'string'
-            ? JSON.parse(data[0].description)
-            : data[0].description;
-
-          localStorage.setItem('ayaana_cloud_settings_cache', JSON.stringify(parsed));
-
-          if (parsed.heroSettings && isMounted) {
-            setHeroSettings(parsed.heroSettings);
-            localStorage.setItem('ayaana_hero_settings', JSON.stringify(parsed.heroSettings));
-          }
-
-          if (parsed.transformationModel && isMounted) {
-            setTransformationModel(parsed.transformationModel);
-            localStorage.setItem('ayaana_transformation_model', JSON.stringify(parsed.transformationModel));
-          }
-
-          if (Array.isArray(parsed.siteReviews) && parsed.siteReviews.length > 0 && isMounted) {
-            setSiteReviews(parsed.siteReviews);
-            localStorage.setItem('ayaana_reviews', JSON.stringify(parsed.siteReviews));
-          }
-
-          if (Array.isArray(parsed.portraitProductIds) && isMounted) {
-            setPortraitProductIds(parsed.portraitProductIds);
-            localStorage.setItem('ayaana_portrait_products', JSON.stringify(parsed.portraitProductIds));
-          }
-
-          if (Array.isArray(parsed.deletedProductIds)) {
-            const currentDeleted = getDeletedProductIds();
-            let changed = false;
-            parsed.deletedProductIds.forEach((id) => {
-              if (!currentDeleted.has(id)) {
-                currentDeleted.add(id);
-                changed = true;
-              }
-            });
-            if (changed) {
-              saveDeletedProductIds(currentDeleted);
-              if (isMounted) {
-                setProducts((prev) => {
-                  const updated = prev.filter((p) => !currentDeleted.has(p.id));
-                  localStorage.setItem('ayaana_products', JSON.stringify(updated));
-                  return updated;
-                });
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("Could not sync settings from cloud:", err);
-      }
-    }
-
-    // 2. Sync Products Catalog
     async function syncProductsFromCloud() {
       try {
         const { data, error } = await supabaseQuery('products?select=*&order=created_at.asc');
-        if (!error && Array.isArray(data)) {
-          // Exclude internal system rows
-          const actualProducts = data.filter((p) => p.id && !p.id.startsWith('__'));
-          if (actualProducts.length > 0) {
-            const mapped = actualProducts.map(mapDbToProduct);
-            const deletedIds = getDeletedProductIds();
-            const cleanProducts = mapped.filter((p) => !deletedIds.has(p.id) && !DEPRECATED_PRODUCT_IDS.has(p.id));
+        if (!error && Array.isArray(data) && data.length > 0) {
+          const mapped = data.map(mapDbToProduct);
+          const deletedIds = getDeletedProductIds();
+          const cleanProducts = mapped.filter((p) => !deletedIds.has(p.id) && !DEPRECATED_PRODUCT_IDS.has(p.id));
 
-            if (isMounted && cleanProducts.length > 0) {
-              setProducts(cleanProducts);
-              localStorage.setItem('ayaana_products', JSON.stringify(cleanProducts));
-              localStorage.setItem('ayaana_cloud_synced', 'true');
-            }
+          if (isMounted && cleanProducts.length > 0) {
+            setProducts(cleanProducts);
+            localStorage.setItem('ayaana_products', JSON.stringify(cleanProducts));
           }
         }
       } catch (e) {
@@ -498,15 +348,10 @@ export function ShopProvider({ children }) {
       }
     }
 
-    const runFullSync = async () => {
-      await syncSettingsFromCloud();
-      await syncProductsFromCloud();
-    };
-
-    runFullSync();
+    syncProductsFromCloud();
 
     // Re-check cloud when user refocuses tab / switches browser
-    const handleFocus = () => { runFullSync(); };
+    const handleFocus = () => { syncProductsFromCloud(); };
     window.addEventListener('focus', handleFocus);
 
     return () => {
@@ -794,9 +639,6 @@ export function ShopProvider({ children }) {
     } catch {
       // Ignore background cloud sync error if offline or not configured
     }
-
-    // 8. Persist deleted product IDs list to cloud so all other devices permanently sync the deletion
-    saveSettingsToCloud({ deletedProductIds: Array.from(deletedSet) });
   };
 
   const resetProductsToDefault = () => {

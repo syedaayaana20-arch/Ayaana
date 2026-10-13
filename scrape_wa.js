@@ -13,8 +13,8 @@ async function run() {
   await page.setViewport({ width: 1280, height: 900 });
   await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-  console.log('Navigating to https://web.whatsapp.com/catalog/923264319736 ...');
-  await page.goto('https://web.whatsapp.com/catalog/923264319736', { waitUntil: 'networkidle2', timeout: 40000 });
+  console.log('Navigating to https://web.whatsapp.com/catalog/923442892441 ...');
+  await page.goto('https://web.whatsapp.com/catalog/923442892441', { waitUntil: 'networkidle2', timeout: 40000 });
 
   await new Promise(r => setTimeout(r, 10000));
 

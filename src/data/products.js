@@ -254,8 +254,8 @@ export const CATEGORIES = [
 export const BRAND_CONFIG = {
   name: "Ayaana’s",
   tagline: "Pure Radiance & Botanical Skincare",
-  whatsappNumber: "+923264319736",
-  whatsappDisplay: "+92 326 4319736",
+  whatsappNumber: "+923442892441",
+  whatsappDisplay: "+92 344 2892441",
   email: "care@ayaanas.com",
   currency: {
     PKR: { symbol: "Rs. ", rate: 1 },
