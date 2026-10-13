@@ -101,29 +101,46 @@ export default function ZeroGravityShowcase() {
   const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
   const [isFullscreenModalOpen, setIsFullscreenModalOpen] = useState(false);
 
-  const slideDuration = 5000; // 5 seconds per slide
+  const slideDuration = 6500; // 6.5 seconds per slide for a relaxed luxury feel
   const timerRef = useRef(null);
   const progressTimerRef = useRef(null);
   const showcaseRef = useRef(null);
   const thumbRefs = useRef([]);
+  const thumbReelRef = useRef(null);
+  const [isInViewport, setIsInViewport] = useState(true);
 
   const currentSlide = ZERO_GRAVITY_SLIDES[currentIndex];
   const linkedProduct = products.find((p) => p.id === currentSlide.productId) || products[0];
 
-  // Auto-scroll thumbnail bar so active slide stays centered
+  // Pause slideshow when user scrolls away from this section to browse catalog/reviews below
   useEffect(() => {
-    if (thumbRefs.current[currentIndex]) {
-      thumbRefs.current[currentIndex].scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center'
+    if (!showcaseRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInViewport(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(showcaseRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Auto-scroll horizontal thumbnail bar so active slide stays centered (NEVER scrolls page window)
+  useEffect(() => {
+    const reel = thumbReelRef.current;
+    const thumb = thumbRefs.current[currentIndex];
+    if (reel && thumb) {
+      const scrollTarget = thumb.offsetLeft - (reel.offsetWidth / 2) + (thumb.offsetWidth / 2);
+      reel.scrollTo({
+        left: scrollTarget,
+        behavior: 'smooth'
       });
     }
   }, [currentIndex]);
 
-  // Auto-play timer (pauses when user is interacting with 3D Zero-G model or paused)
+  // Auto-play timer (pauses when user is interacting with 3D Zero-G model, paused, or out of viewport)
   useEffect(() => {
-    if (!isPlaying || (currentIndex === 0 && viewMode === '3d' && is3DInteracting)) {
+    if (!isPlaying || !isInViewport || (currentIndex === 0 && viewMode === '3d' && is3DInteracting)) {
       if (timerRef.current) clearInterval(timerRef.current);
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
       return;
@@ -146,7 +163,7 @@ export default function ZeroGravityShowcase() {
       if (timerRef.current) clearInterval(timerRef.current);
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     };
-  }, [isPlaying, currentIndex, is3DInteracting, viewMode]);
+  }, [isPlaying, isInViewport, currentIndex, is3DInteracting, viewMode]);
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % ZERO_GRAVITY_SLIDES.length);
@@ -270,16 +287,22 @@ export default function ZeroGravityShowcase() {
         }
         @keyframes zgContentCrossfade {
           0% {
-            opacity: 0.15;
-            transform: translateY(6px);
+            opacity: 0;
+            transform: translateY(10px);
+            filter: blur(4px);
+          }
+          40% {
+            opacity: 0.5;
+            filter: blur(1px);
           }
           100% {
             opacity: 1;
             transform: translateY(0);
+            filter: blur(0px);
           }
         }
         .zg-content-fade {
-          animation: zgContentCrossfade 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: zgContentCrossfade 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .zg-gradient-title {
@@ -352,7 +375,7 @@ export default function ZeroGravityShowcase() {
         }
 
         .zg-thumb-btn {
-          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .zg-thumb-btn:hover {
           transform: translateY(-3px) scale(1.04);
@@ -435,7 +458,7 @@ export default function ZeroGravityShowcase() {
           filter: 'blur(90px)',
           pointerEvents: 'none',
           zIndex: 0,
-          transition: 'background 0.8s ease'
+          transition: 'background 1.4s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       />
 
@@ -480,7 +503,7 @@ export default function ZeroGravityShowcase() {
               style={{
                 '--accent-color': currentSlide.accentColor,
                 fontStyle: 'italic',
-                transition: 'all 0.5s ease'
+                transition: 'all 1.2s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
             >
               Pure Zero Gravity
@@ -536,8 +559,8 @@ export default function ZeroGravityShowcase() {
                     width: '100%',
                     height: '100%',
                     opacity: isActive ? 1 : 0,
-                    transform: isActive ? 'scale(1)' : 'scale(1.045)',
-                    transition: 'opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                    transform: isActive ? 'scale(1)' : 'scale(1.06)',
+                    transition: 'opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1), transform 1.6s cubic-bezier(0.2, 0.8, 0.2, 1)',
                     pointerEvents: isActive ? 'auto' : 'none',
                     zIndex: isActive ? 2 : 1,
                     willChange: 'opacity, transform'
@@ -1092,6 +1115,7 @@ export default function ZeroGravityShowcase() {
 
         {/* 16:9 Thumbnail Reel for Instant Jumping */}
         <div
+          ref={thumbReelRef}
           className="zg-thumb-reel"
         >
           {ZERO_GRAVITY_SLIDES.map((slide, idx) => {
