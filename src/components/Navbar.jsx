@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useShop } from '../context/ShopContext';
 import {
   ShoppingBag,
@@ -33,6 +34,18 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
 
   // Filtered search results
   const searchResults = searchQuery.trim()
@@ -112,14 +125,20 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
         {/* Mobile Hamburger Trigger */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="mobile-only-btn">
           <button
-            onClick={() => setIsMobileMenuOpen(true)}
+            onClick={() => {
+              setIsSearchOpen(false);
+              setIsMobileMenuOpen(true);
+            }}
             style={{ background: 'none', border: 'none', padding: '6px', cursor: 'pointer', color: '#121212' }}
             aria-label="Open navigation menu"
           >
             <Menu style={{ width: '22px', height: '22px' }} />
           </button>
           <button
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setIsSearchOpen(!isSearchOpen);
+            }}
             style={{ background: 'none', border: 'none', padding: '6px', cursor: 'pointer', color: '#121212' }}
             aria-label="Search"
           >
@@ -273,27 +292,29 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
           {/* Owner / Admin Protected Access Button */}
           <button
             onClick={() => setIsAdminOpen(true)}
-            className="desktop-only-admin-btn"
+            className="admin-header-btn"
             style={{
               background: isAdminLoggedIn ? '#121212' : 'var(--bg-card)',
               border: isAdminLoggedIn ? '1px solid #E2829F' : '1px solid var(--border-card)',
               color: isAdminLoggedIn ? '#E2829F' : '#736C65',
               cursor: 'pointer',
-              padding: isAdminLoggedIn ? '6px 12px' : '8px',
+              padding: isAdminLoggedIn ? '6px 12px' : '7px 10px',
               borderRadius: '9999px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               fontSize: '11px',
               fontWeight: 700,
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              flexShrink: 0
             }}
             title={isAdminLoggedIn ? "Open Owner Dashboard (Logged In)" : "Owner / Admin Login"}
+            aria-label="Owner / Admin Login"
           >
             {isAdminLoggedIn ? (
               <>
                 <Unlock style={{ width: '13px', height: '13px', color: '#E2829F' }} />
-                <span>Owner Mode</span>
+                <span className="owner-login-text">Owner Mode</span>
               </>
             ) : (
               <>
@@ -411,44 +432,65 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
         </div>
       )}
 
-      {/* 4. Mobile Slide-out Menu Drawer */}
-      {isMobileMenuOpen && (
-        <div className="overlay-backdrop" onClick={() => setIsMobileMenuOpen(false)}>
+      {/* 4. Mobile Slide-out Menu Drawer (Portaled to document.body) */}
+      {isMobileMenuOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="overlay-backdrop"
+          onClick={() => setIsMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            height: '100dvh',
+            backgroundColor: 'rgba(18, 18, 18, 0.72)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'stretch',
+            justifyContent: 'flex-start'
+          }}
+        >
           <div
-            className="slide-drawer"
+            className="slide-drawer-left"
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '82%',
-              maxWidth: '320px',
+              position: 'relative',
+              width: '85%',
+              maxWidth: '340px',
               height: '100%',
+              height: '100dvh',
               backgroundColor: '#FDFBF7',
-              boxShadow: 'var(--shadow-lg)',
-              zIndex: 1001,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
               display: 'flex',
               flexDirection: 'column',
-              padding: '24px'
+              padding: '20px 20px 24px 20px',
+              boxSizing: 'border-box',
+              overflow: 'hidden'
             }}
           >
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid rgba(18, 18, 18, 0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '14px', borderBottom: '1px solid rgba(18, 18, 18, 0.08)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img src="/assets/logo.png" alt="Ayaana's" style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
-                <span style={{ fontWeight: 800, fontSize: '18px' }}>Ayaana’s</span>
+                <img src="/assets/logo.png" alt="Ayaana's" style={{ width: '38px', height: '38px', borderRadius: '50%' }} />
+                <div>
+                  <span style={{ fontWeight: 800, fontSize: '18px', color: '#121212', display: 'block', lineHeight: 1.1 }}>Ayaana’s</span>
+                  <span style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#C75678' }}>Pure Radiance</span>
+                </div>
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: '50%', cursor: 'pointer', padding: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#121212' }}
+                aria-label="Close menu"
               >
-                <X style={{ width: '20px', height: '20px' }} />
+                <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
 
             {/* Currency Switcher in Drawer for Mobile Users */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '10px 14px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
-              <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#736C65' }}>Store Currency:</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', padding: '10px 14px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-card)', flexShrink: 0 }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#736C65' }}>Store Currency:</span>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button
                   onClick={() => setCurrency('PKR')}
@@ -483,14 +525,82 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
               </div>
             </div>
 
-            {/* Links */}
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, overflowY: 'auto' }}>
+            {/* PROMINENT Owner / Admin Login Action Card (Direct Mobile Access) */}
+            <div style={{ marginBottom: '16px', flexShrink: 0 }}>
+              <button
+                onClick={() => {
+                  setIsAdminOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: isAdminLoggedIn
+                    ? 'linear-gradient(135deg, rgba(18, 140, 126, 0.12) 0%, rgba(18, 140, 126, 0.04) 100%)'
+                    : 'linear-gradient(135deg, #121212 0%, #2A2624 100%)',
+                  border: isAdminLoggedIn ? '1.5px solid #128C7E' : '1px solid rgba(0,0,0,0.1)',
+                  color: isAdminLoggedIn ? '#128C7E' : '#FFFFFF',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '10px',
+                      background: isAdminLoggedIn ? '#128C7E' : 'rgba(255, 255, 255, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FFFFFF',
+                      flexShrink: 0
+                    }}
+                  >
+                    {isAdminLoggedIn ? <Unlock style={{ width: '18px', height: '18px' }} /> : <Lock style={{ width: '18px', height: '18px' }} />}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '-0.01em', color: isAdminLoggedIn ? '#128C7E' : '#FFFFFF' }}>
+                      {isAdminLoggedIn ? "Owner Dashboard" : "Owner / Admin Login"}
+                    </div>
+                    <div style={{ fontSize: '11px', opacity: 0.8, fontWeight: 500, color: isAdminLoggedIn ? '#128C7E' : 'rgba(255,255,255,0.7)' }}>
+                      {isAdminLoggedIn ? "Manage Orders & Catalog (Active)" : "Secure store & catalog control"}
+                    </div>
+                  </div>
+                </div>
+                <ArrowRight style={{ width: '16px', height: '16px', opacity: 0.8, color: isAdminLoggedIn ? '#128C7E' : '#FFFFFF' }} />
+              </button>
+            </div>
+
+            {/* Scrollable Navigation Links */}
+            <nav
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                flex: 1,
+                overflowY: 'auto',
+                minHeight: 0,
+                paddingRight: '4px'
+              }}
+            >
+              <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9B948C', marginBottom: '2px' }}>
+                Categories & Proof
+              </div>
+
               <button
                 onClick={() => {
                   onCategorySelect('all');
                   setIsMobileMenuOpen(false);
                 }}
-                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '16px', fontWeight: 700, color: '#121212', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '15px', fontWeight: 700, color: '#121212', cursor: 'pointer', padding: '6px 0' }}
               >
                 All Products
               </button>
@@ -499,7 +609,7 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
                   onCategorySelect('repair-creams');
                   setIsMobileMenuOpen(false);
                 }}
-                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '16px', fontWeight: 600, color: '#2E2B28', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '15px', fontWeight: 600, color: '#2E2B28', cursor: 'pointer', padding: '6px 0' }}
               >
                 Skin Repair Creams
               </button>
@@ -508,7 +618,7 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
                   onCategorySelect('toners');
                   setIsMobileMenuOpen(false);
                 }}
-                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '16px', fontWeight: 600, color: '#2E2B28', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '15px', fontWeight: 600, color: '#2E2B28', cursor: 'pointer', padding: '6px 0' }}
               >
                 Whitening Toners
               </button>
@@ -517,7 +627,7 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
                   onCategorySelect('serums');
                   setIsMobileMenuOpen(false);
                 }}
-                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '16px', fontWeight: 600, color: '#2E2B28', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '15px', fontWeight: 600, color: '#2E2B28', cursor: 'pointer', padding: '6px 0' }}
               >
                 24K Radiance Serums
               </button>
@@ -526,7 +636,7 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
                   onCategorySelect('hand-foot');
                   setIsMobileMenuOpen(false);
                 }}
-                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '16px', fontWeight: 600, color: '#2E2B28', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '15px', fontWeight: 600, color: '#2E2B28', cursor: 'pointer', padding: '6px 0' }}
               >
                 Hand & Foot Brightening
               </button>
@@ -535,34 +645,27 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
                   onScrollToSection('before-after');
                   setIsMobileMenuOpen(false);
                 }}
-                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '16px', fontWeight: 600, color: '#C75678', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '15px', fontWeight: 600, color: '#C75678', cursor: 'pointer', padding: '6px 0' }}
               >
                 Real Before & After Results
               </button>
+
+              <div style={{ height: '1px', background: 'rgba(18, 18, 18, 0.06)', margin: '6px 0' }} />
+
               <button
                 onClick={() => {
                   setIsTrackingOpen(true);
                   setIsMobileMenuOpen(false);
                 }}
-                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '15px', fontWeight: 600, color: '#736C65', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '12px' }}
+                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '14.5px', fontWeight: 600, color: '#736C65', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '6px 0' }}
               >
-                <Truck style={{ width: '17px', height: '17px' }} />
+                <Truck style={{ width: '18px', height: '18px', color: '#121212' }} />
                 <span>Track Your Order</span>
-              </button>
-              <button
-                onClick={() => {
-                  setIsAdminOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
-                style={{ background: 'none', border: 'none', textAlign: 'left', fontSize: '15px', fontWeight: 700, color: isAdminLoggedIn ? '#128C7E' : '#121212', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-              >
-                {isAdminLoggedIn ? <Unlock style={{ width: '17px', height: '17px', color: '#128C7E' }} /> : <Lock style={{ width: '17px', height: '17px' }} />}
-                <span>{isAdminLoggedIn ? "Owner Dashboard (Active)" : "Owner / Admin Login"}</span>
               </button>
             </nav>
 
             {/* Bottom Support CTA */}
-            <div style={{ paddingTop: '20px', borderTop: '1px solid rgba(18, 18, 18, 0.08)' }}>
+            <div style={{ paddingTop: '16px', borderTop: '1px solid rgba(18, 18, 18, 0.08)', flexShrink: 0 }}>
               <a
                 href={`https://wa.me/${BRAND_CONFIG.whatsappNumber.replace('+', '')}`}
                 target="_blank"
@@ -573,12 +676,13 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
                 <MessageCircle style={{ width: '16px', height: '16px' }} />
                 <span>WhatsApp Skin Specialist</span>
               </a>
-              <p style={{ fontSize: '11px', color: '#9B948C', textAlign: 'center', marginTop: '10px' }}>
+              <p style={{ fontSize: '11px', color: '#9B948C', textAlign: 'center', marginTop: '8px', marginBottom: 0 }}>
                 Official WhatsApp: {BRAND_CONFIG.whatsappDisplay}
               </p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Responsive styling rule for desktop vs mobile nav */}
@@ -593,11 +697,10 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
           .desktop-search-btn { display: none !important; }
           .mobile-only-btn { display: flex !important; }
           .track-btn { display: none !important; }
-          .owner-login-text { display: none; }
+          .owner-login-text { display: none !important; }
         }
         @media (max-width: 640px) {
           .cart-text { display: none !important; }
-          .desktop-only-admin-btn { display: none !important; }
           .announcement-divider { display: none !important; }
         }
         @media (max-width: 440px) {
