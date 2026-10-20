@@ -147,13 +147,6 @@ export default function AdminModal() {
   // Role helper
   const isSuperAdmin = currentAdminUser?.role === 'Super Admin';
 
-  // Quick Login Autofill Helper
-  const handleQuickFill = (email, pass) => {
-    setLoginInput(email);
-    setPasswordInput(pass);
-    setLoginError('');
-  };
-
   // Self Password Change Handler
   const handleSelfPasswordChange = (e) => {
     e.preventDefault();
@@ -392,72 +385,17 @@ export default function AdminModal() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleLoginSubmit} style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ textAlign: 'center', marginBottom: '2px' }}>
+            <form onSubmit={handleLoginSubmit} style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '4px' }}>
                 <img
                   src="/assets/logo.png"
                   alt="Ayaana's"
                   style={{ width: '54px', height: '54px', borderRadius: '50%', margin: '0 auto 10px auto', border: '2px solid rgba(226, 130, 159, 0.4)' }}
                 />
-                <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#121212', margin: '0 0 4px 0' }}>Ayaana’s Store Admin Portal</h2>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#121212', margin: '0 0 4px 0' }}>Admin & Owner Login</h2>
                 <p style={{ fontSize: '12px', color: '#736C65', margin: 0 }}>
-                  Manage luxury skincare products, multi-picture catalog, stock, and customer orders.
+                  Enter your registered credentials to access store operations.
                 </p>
-              </div>
-
-              {/* 1-Click Fast Account Selector */}
-              <div style={{ background: '#FAF7F2', borderRadius: '12px', padding: '12px', border: '1px solid rgba(18, 18, 18, 0.08)' }}>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: '#736C65', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Key style={{ width: '13px', height: '13px', color: '#C75678' }} />
-                  <span>1-Click Instant Login (Choose Account):</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickFill('Syedaayaana20@gmail.com', 'Ayaanaali69$')}
-                    style={{
-                      background: loginInput.toLowerCase().includes('syeda') ? '#121212' : '#FFFFFF',
-                      color: loginInput.toLowerCase().includes('syeda') ? '#FFFFFF' : '#121212',
-                      border: loginInput.toLowerCase().includes('syeda') ? '1.5px solid #121212' : '1px solid rgba(18,18,18,0.15)',
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.2s',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                    }}
-                  >
-                    <div style={{ fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span>👩‍💼 Syeda Ayaana</span>
-                    </div>
-                    <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '2px', color: loginInput.toLowerCase().includes('syeda') ? '#D2F4EA' : '#0F5132', fontWeight: 600 }}>
-                      ✓ Store Admin (Catalog & Orders)
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickFill('basitmalix01@gmail.com', 'Muhana5424@.')}
-                    style={{
-                      background: loginInput.toLowerCase().includes('basit') ? '#121212' : '#FFFFFF',
-                      color: loginInput.toLowerCase().includes('basit') ? '#FFFFFF' : '#121212',
-                      border: loginInput.toLowerCase().includes('basit') ? '1.5px solid #121212' : '1px solid rgba(18,18,18,0.15)',
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.2s',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                    }}
-                  >
-                    <div style={{ fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span>👑 Basit Nayab</span>
-                    </div>
-                    <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '2px', color: loginInput.toLowerCase().includes('basit') ? '#FDE8ED' : '#C75678', fontWeight: 600 }}>
-                      Super Admin (Full Access)
-                    </div>
-                  </button>
-                </div>
               </div>
 
               {loginError && (
@@ -468,14 +406,14 @@ export default function AdminModal() {
 
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '6px' }}>
-                  Admin Email
+                  Admin Email / Username
                 </label>
                 <input
                   type="text"
                   required
                   value={loginInput}
                   onChange={(e) => setLoginInput(e.target.value)}
-                  placeholder="e.g. Syedaayaana20@gmail.com"
+                  placeholder="Enter your registered email"
                   style={{
                     width: '100%',
                     padding: '11px 16px',
@@ -525,7 +463,7 @@ export default function AdminModal() {
                 style={{ width: '100%', padding: '13px', fontSize: '13.5px', marginTop: '4px' }}
               >
                 <Unlock style={{ width: '15px', height: '15px' }} />
-                <span>Log In to Store Admin Panel</span>
+                <span>Log In</span>
               </button>
             </form>
           </div>
