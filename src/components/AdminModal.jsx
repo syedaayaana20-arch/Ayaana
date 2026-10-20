@@ -112,10 +112,16 @@ export default function AdminModal() {
     name: '',
     email: '',
     password: '',
-    role: 'Store Manager'
+    role: 'Store Admin'
   });
   const [adminSuccessMsg, setAdminSuccessMsg] = useState('');
   const [adminErrorMsg, setAdminErrorMsg] = useState('');
+
+  // Self password change state
+  const [selfNewPass, setSelfNewPass] = useState('');
+  const [selfConfirmPass, setSelfConfirmPass] = useState('');
+  const [selfPassSuccess, setSelfPassSuccess] = useState('');
+  const [selfPassError, setSelfPassError] = useState('');
 
   // Supabase settings state
   const [supabaseUrl, setSupabaseUrl] = useState(() => getSupabaseConfig().url);
@@ -138,6 +144,35 @@ export default function AdminModal() {
   });
   const [newReviewSuccess, setNewReviewSuccess] = useState(false);
 
+  // Role helper
+  const isSuperAdmin = currentAdminUser?.role === 'Super Admin';
+
+  // Quick Login Autofill Helper
+  const handleQuickFill = (email, pass) => {
+    setLoginInput(email);
+    setPasswordInput(pass);
+    setLoginError('');
+  };
+
+  // Self Password Change Handler
+  const handleSelfPasswordChange = (e) => {
+    e.preventDefault();
+    setSelfPassSuccess('');
+    setSelfPassError('');
+    if (!selfNewPass || selfNewPass.length < 6) {
+      setSelfPassError('New password must be at least 6 characters.');
+      return;
+    }
+    if (selfNewPass !== selfConfirmPass) {
+      setSelfPassError('Passwords do not match. Please verify.');
+      return;
+    }
+    updateAdminPassword(selfNewPass);
+    setSelfPassSuccess('Your password was updated successfully!');
+    setSelfNewPass('');
+    setSelfConfirmPass('');
+    setTimeout(() => setSelfPassSuccess(''), 4000);
+  };
 
   if (!isAdminOpen) return null;
 
@@ -357,17 +392,72 @@ export default function AdminModal() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleLoginSubmit} style={{ padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+            <form onSubmit={handleLoginSubmit} style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '2px' }}>
                 <img
                   src="/assets/logo.png"
                   alt="Ayaana's"
-                  style={{ width: '56px', height: '56px', borderRadius: '50%', margin: '0 auto 12px auto', border: '2px solid rgba(226, 130, 159, 0.4)' }}
+                  style={{ width: '54px', height: '54px', borderRadius: '50%', margin: '0 auto 10px auto', border: '2px solid rgba(226, 130, 159, 0.4)' }}
                 />
-                <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#121212' }}>Ayaana’s Super Admin Portal</h2>
-                <p style={{ fontSize: '12px', color: '#736C65', marginTop: '4px' }}>
-                  Manage multiple admins, multi-picture catalog, orders, and cloud database.
+                <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#121212', margin: '0 0 4px 0' }}>Ayaana’s Store Admin Portal</h2>
+                <p style={{ fontSize: '12px', color: '#736C65', margin: 0 }}>
+                  Manage luxury skincare products, multi-picture catalog, stock, and customer orders.
                 </p>
+              </div>
+
+              {/* 1-Click Fast Account Selector */}
+              <div style={{ background: '#FAF7F2', borderRadius: '12px', padding: '12px', border: '1px solid rgba(18, 18, 18, 0.08)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#736C65', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Key style={{ width: '13px', height: '13px', color: '#C75678' }} />
+                  <span>1-Click Instant Login (Choose Account):</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill('Syedaayaana20@gmail.com', 'Ayaanaali69$')}
+                    style={{
+                      background: loginInput.toLowerCase().includes('syeda') ? '#121212' : '#FFFFFF',
+                      color: loginInput.toLowerCase().includes('syeda') ? '#FFFFFF' : '#121212',
+                      border: loginInput.toLowerCase().includes('syeda') ? '1.5px solid #121212' : '1px solid rgba(18,18,18,0.15)',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <div style={{ fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>👩‍💼 Syeda Ayaana</span>
+                    </div>
+                    <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '2px', color: loginInput.toLowerCase().includes('syeda') ? '#D2F4EA' : '#0F5132', fontWeight: 600 }}>
+                      ✓ Store Admin (Catalog & Orders)
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill('basitmalix01@gmail.com', 'Muhana5424@.')}
+                    style={{
+                      background: loginInput.toLowerCase().includes('basit') ? '#121212' : '#FFFFFF',
+                      color: loginInput.toLowerCase().includes('basit') ? '#FFFFFF' : '#121212',
+                      border: loginInput.toLowerCase().includes('basit') ? '1.5px solid #121212' : '1px solid rgba(18,18,18,0.15)',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <div style={{ fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>👑 Basit Nayab</span>
+                    </div>
+                    <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '2px', color: loginInput.toLowerCase().includes('basit') ? '#FDE8ED' : '#C75678', fontWeight: 600 }}>
+                      Super Admin (Full Access)
+                    </div>
+                  </button>
+                </div>
               </div>
 
               {loginError && (
@@ -385,7 +475,7 @@ export default function AdminModal() {
                   required
                   value={loginInput}
                   onChange={(e) => setLoginInput(e.target.value)}
-                  placeholder="e.g. admin@example.com"
+                  placeholder="e.g. Syedaayaana20@gmail.com"
                   style={{
                     width: '100%',
                     padding: '11px 16px',
@@ -408,7 +498,7 @@ export default function AdminModal() {
                     required
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="Enter password"
+                    placeholder="Enter your password"
                     style={{
                       width: '100%',
                       padding: '11px 42px 11px 16px',
@@ -435,7 +525,7 @@ export default function AdminModal() {
                 style={{ width: '100%', padding: '13px', fontSize: '13.5px', marginTop: '4px' }}
               >
                 <Unlock style={{ width: '15px', height: '15px' }} />
-                <span>Log In to Admin Panel</span>
+                <span>Log In to Store Admin Panel</span>
               </button>
             </form>
           </div>
@@ -445,18 +535,28 @@ export default function AdminModal() {
             {/* Top Bar */}
             <div style={{ padding: '14px 24px', borderBottom: '1px solid rgba(18, 18, 18, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FDFBF7', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <img src="/assets/logo.png" alt="Ayaana's" style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
+                <img src="/assets/logo.png" alt="Ayaana's" style={{ width: '38px', height: '38px', borderRadius: '50%', border: '1.5px solid rgba(226, 130, 159, 0.5)' }} />
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#121212', margin: 0 }}>
-                      Ayaana’s Admin Panel
+                      {isSuperAdmin ? 'Ayaana’s Super Admin Portal' : 'Ayaana’s Store Admin Portal'}
                     </h3>
-                    <span style={{ fontSize: '11px', background: '#D2F4EA', color: '#0F5132', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                      {currentAdminUser?.role || 'Super Admin'}
+                    <span style={{
+                      fontSize: '11px',
+                      background: isSuperAdmin ? '#FDE8ED' : '#D2F4EA',
+                      color: isSuperAdmin ? '#C75678' : '#0F5132',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <span>{isSuperAdmin ? '👑 Super Admin' : '👩‍💼 Store Admin'}</span>
                     </span>
                   </div>
                   <span style={{ fontSize: '11.5px', color: '#736C65' }}>
-                    Logged in as: <strong>{currentAdminUser?.email || 'basitmalix01@gmail.com'}</strong>
+                    Logged in as: <strong>{currentAdminUser?.name ? `${currentAdminUser.name} (${currentAdminUser.email})` : (currentAdminUser?.email || 'Syedaayaana20@gmail.com')}</strong>
                   </span>
                 </div>
               </div>
@@ -571,29 +671,31 @@ export default function AdminModal() {
                 }}
               >
                 <Users style={{ width: '15px', height: '15px' }} />
-                <span>Team & Admins ({adminsList.length})</span>
+                <span>{isSuperAdmin ? `Team & Admins (${adminsList.length})` : 'Profile & Team'}</span>
               </button>
 
-              <button
-                onClick={() => setActiveTab('database')}
-                style={{
-                  padding: '13px 16px',
-                  border: 'none',
-                  background: 'none',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: activeTab === 'database' ? '#121212' : '#736C65',
-                  borderBottom: activeTab === 'database' ? '2.5px solid #121212' : 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <Database style={{ width: '15px', height: '15px' }} />
-                <span>Database & Supabase</span>
-              </button>
+              {isSuperAdmin && (
+                <button
+                  onClick={() => setActiveTab('database')}
+                  style={{
+                    padding: '13px 16px',
+                    border: 'none',
+                    background: 'none',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: activeTab === 'database' ? '#121212' : '#736C65',
+                    borderBottom: activeTab === 'database' ? '2.5px solid #121212' : 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Database style={{ width: '15px', height: '15px' }} />
+                  <span>Database & Supabase</span>
+                </button>
+              )}
 
               <button
                 onClick={() => setActiveTab('customize')}
@@ -1215,91 +1317,248 @@ export default function AdminModal() {
                 </div>
               )}
 
-              {/* TAB 4: Team & Admins (Add & Manage Admins) */}
+              {/* TAB 4: Team & Admins (Profile & Directory) */}
               {activeTab === 'admins' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '720px', margin: '0 auto' }}>
-                  {/* Create New Admin Box */}
-                  <div style={{ background: '#FAF7F2', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-card)' }}>
-                    <h3 style={{ fontSize: '17px', fontWeight: 800, margin: '0 0 6px 0', color: '#121212' }}>
-                      Create New Admin Account
-                    </h3>
-                    <p style={{ fontSize: '12.5px', color: '#736C65', margin: '0 0 16px 0' }}>
-                      Add colleagues or partners as store managers or super admins to manage inventory and orders.
+                  {/* Active Admin Profile Card */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #FAF7F2 0%, #FFFFFF 100%)',
+                    padding: '24px',
+                    borderRadius: '16px',
+                    border: '1.5px solid rgba(226, 130, 159, 0.35)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{
+                          width: '56px',
+                          height: '56px',
+                          borderRadius: '50%',
+                          background: isSuperAdmin ? 'linear-gradient(135deg, #121212 0%, #C75678 100%)' : 'linear-gradient(135deg, #0F5132 0%, #128C7E 100%)',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '20px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                        }}>
+                          {currentAdminUser?.name ? currentAdminUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'SA'}
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: '#121212' }}>
+                              {currentAdminUser?.name || 'Syeda Ayaana'}
+                            </h3>
+                            <span style={{
+                              fontSize: '11px',
+                              background: isSuperAdmin ? '#FDE8ED' : '#D2F4EA',
+                              color: isSuperAdmin ? '#C75678' : '#0F5132',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontWeight: 800
+                            }}>
+                              {isSuperAdmin ? '👑 Super Admin' : '👩‍💼 Store Admin'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '12.5px', color: '#736C65', marginTop: '2px' }}>
+                            {currentAdminUser?.email || 'Syedaayaana20@gmail.com'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#0F5132', background: '#D2F4EA', padding: '4px 10px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Check style={{ width: '13px', height: '13px' }} />
+                          <span>Active Administrator</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Permissions summary */}
+                    <div style={{ borderTop: '1px solid rgba(18,18,18,0.06)', paddingTop: '14px', marginTop: '10px' }}>
+                      <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#121212', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                        Your Granted Permissions:
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                        <div style={{ fontSize: '12px', color: '#0F5132', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Check style={{ width: '14px', height: '14px' }} />
+                          <span>Products & Catalog Management</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#0F5132', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Check style={{ width: '14px', height: '14px' }} />
+                          <span>Multi-Picture Image Uploads</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#0F5132', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Check style={{ width: '14px', height: '14px' }} />
+                          <span>Customer Orders & Status Tracking</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#0F5132', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Check style={{ width: '14px', height: '14px' }} />
+                          <span>Store Testimonials & Reviews</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: isSuperAdmin ? '#0F5132' : '#736C65', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {isSuperAdmin ? <Check style={{ width: '14px', height: '14px' }} /> : <Lock style={{ width: '13px', height: '13px', color: '#C75678' }} />}
+                          <span>{isSuperAdmin ? 'Full Admin Account Management' : 'Admin Creation (Super Admin Only)'}</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: isSuperAdmin ? '#0F5132' : '#736C65', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {isSuperAdmin ? <Check style={{ width: '14px', height: '14px' }} /> : <Lock style={{ width: '13px', height: '13px', color: '#C75678' }} />}
+                          <span>{isSuperAdmin ? 'Direct Cloud Database Control' : 'Cloud Database (Super Admin Only)'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Change My Password Box */}
+                  <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-card)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <Key style={{ width: '16px', height: '16px', color: '#C75678' }} />
+                      <h4 style={{ fontSize: '15px', fontWeight: 800, margin: 0, color: '#121212' }}>
+                        Update My Password
+                      </h4>
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#736C65', margin: '0 0 14px 0' }}>
+                      Update the password for your current account (<strong>{currentAdminUser?.email || 'Syedaayaana20@gmail.com'}</strong>).
                     </p>
 
-                    {adminSuccessMsg && (
+                    {selfPassSuccess && (
                       <div style={{ background: '#D2F4EA', color: '#0F5132', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, marginBottom: '12px' }}>
-                        ✓ {adminSuccessMsg}
+                        ✓ {selfPassSuccess}
                       </div>
                     )}
-                    {adminErrorMsg && (
+                    {selfPassError && (
                       <div style={{ background: '#FDE8ED', color: '#C75678', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, marginBottom: '12px' }}>
-                        {adminErrorMsg}
+                        {selfPassError}
                       </div>
                     )}
 
-                    <form onSubmit={handleCreateAdminSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <form onSubmit={handleSelfPasswordChange} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div>
-                        <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Full Name</label>
-                        <input
-                          type="text"
-                          required
-                          value={newAdminData.name}
-                          onChange={(e) => setNewAdminData({ ...newAdminData, name: e.target.value })}
-                          placeholder="e.g. Ali Khan"
-                          style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(18,18,18,0.18)', fontSize: '12.5px', outline: 'none' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Admin Email *</label>
-                        <input
-                          type="email"
-                          required
-                          value={newAdminData.email}
-                          onChange={(e) => setNewAdminData({ ...newAdminData, email: e.target.value })}
-                          placeholder="e.g. ali@ayaanas.com"
-                          style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(18,18,18,0.18)', fontSize: '12.5px', outline: 'none' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Password *</label>
+                        <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>New Password</label>
                         <input
                           type="password"
                           required
-                          value={newAdminData.password}
-                          onChange={(e) => setNewAdminData({ ...newAdminData, password: e.target.value })}
-                          placeholder="Create strong password"
+                          value={selfNewPass}
+                          onChange={(e) => setSelfNewPass(e.target.value)}
+                          placeholder="Enter new password"
                           style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(18,18,18,0.18)', fontSize: '12.5px', outline: 'none' }}
                         />
                       </div>
-
                       <div>
-                        <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Role</label>
-                        <select
-                          value={newAdminData.role}
-                          onChange={(e) => setNewAdminData({ ...newAdminData, role: e.target.value })}
-                          style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(18,18,18,0.18)', fontSize: '12.5px', outline: 'none', backgroundColor: '#FFFFFF' }}
-                        >
-                          <option value="Super Admin">Super Admin (Full Access)</option>
-                          <option value="Store Manager">Store Manager (Products & Orders)</option>
-                          <option value="Order Dispatcher">Order Dispatcher (Orders Only)</option>
-                        </select>
+                        <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Confirm New Password</label>
+                        <input
+                          type="password"
+                          required
+                          value={selfConfirmPass}
+                          onChange={(e) => setSelfConfirmPass(e.target.value)}
+                          placeholder="Re-type new password"
+                          style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(18,18,18,0.18)', fontSize: '12.5px', outline: 'none' }}
+                        />
                       </div>
-
-                      <div style={{ gridColumn: 'span 2', marginTop: '6px' }}>
+                      <div style={{ gridColumn: 'span 2' }}>
                         <button
                           type="submit"
                           className="btn-primary"
-                          style={{ width: '100%', padding: '11px', fontSize: '13px' }}
+                          style={{ padding: '9px 18px', fontSize: '12.5px' }}
                         >
-                          <Plus style={{ width: '14px', height: '14px' }} />
-                          <span>Add Admin Account</span>
+                          <Save style={{ width: '13px', height: '13px' }} />
+                          <span>Save New Password</span>
                         </button>
                       </div>
                     </form>
                   </div>
+
+                  {/* If Super Admin, show Create New Admin Form. If Store Admin, show informative badge */}
+                  {isSuperAdmin ? (
+                    <div style={{ background: '#FAF7F2', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-card)' }}>
+                      <h3 style={{ fontSize: '17px', fontWeight: 800, margin: '0 0 6px 0', color: '#121212' }}>
+                        Create New Admin Account
+                      </h3>
+                      <p style={{ fontSize: '12.5px', color: '#736C65', margin: '0 0 16px 0' }}>
+                        Add colleagues or managers to manage store inventory, pictures, and orders.
+                      </p>
+
+                      {adminSuccessMsg && (
+                        <div style={{ background: '#D2F4EA', color: '#0F5132', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, marginBottom: '12px' }}>
+                          ✓ {adminSuccessMsg}
+                        </div>
+                      )}
+                      {adminErrorMsg && (
+                        <div style={{ background: '#FDE8ED', color: '#C75678', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px', fontWeight: 700, marginBottom: '12px' }}>
+                          {adminErrorMsg}
+                        </div>
+                      )}
+
+                      <form onSubmit={handleCreateAdminSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                          <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Full Name</label>
+                          <input
+                            type="text"
+                            required
+                            value={newAdminData.name}
+                            onChange={(e) => setNewAdminData({ ...newAdminData, name: e.target.value })}
+                            placeholder="e.g. Ali Khan"
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(18,18,18,0.18)', fontSize: '12.5px', outline: 'none' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Admin Email *</label>
+                          <input
+                            type="email"
+                            required
+                            value={newAdminData.email}
+                            onChange={(e) => setNewAdminData({ ...newAdminData, email: e.target.value })}
+                            placeholder="e.g. ali@ayaanas.com"
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(18,18,18,0.18)', fontSize: '12.5px', outline: 'none' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Password *</label>
+                          <input
+                            type="password"
+                            required
+                            value={newAdminData.password}
+                            onChange={(e) => setNewAdminData({ ...newAdminData, password: e.target.value })}
+                            placeholder="Create strong password"
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(18,18,18,0.18)', fontSize: '12.5px', outline: 'none' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Role</label>
+                          <select
+                            value={newAdminData.role}
+                            onChange={(e) => setNewAdminData({ ...newAdminData, role: e.target.value })}
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(18,18,18,0.18)', fontSize: '12.5px', outline: 'none', backgroundColor: '#FFFFFF' }}
+                          >
+                            <option value="Super Admin">Super Admin (Full Access)</option>
+                            <option value="Store Admin">Store Admin (Products & Orders)</option>
+                            <option value="Order Dispatcher">Order Dispatcher (Orders Only)</option>
+                          </select>
+                        </div>
+
+                        <div style={{ gridColumn: 'span 2', marginTop: '6px' }}>
+                          <button
+                            type="submit"
+                            className="btn-primary"
+                            style={{ width: '100%', padding: '11px', fontSize: '13px' }}
+                          >
+                            <Plus style={{ width: '14px', height: '14px' }} />
+                            <span>Add Admin Account</span>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    <div style={{ background: '#F8F4EE', padding: '16px 20px', borderRadius: '14px', border: '1px solid rgba(18,18,18,0.08)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <ShieldCheck style={{ width: '22px', height: '22px', color: '#0F5132', flexShrink: 0 }} />
+                      <div style={{ fontSize: '12.5px', color: '#444', lineHeight: 1.5 }}>
+                        <strong>Store Admin Access:</strong> You have full control over the store catalog, multiple pictures, inventory, prices, and orders. Adding or deleting administrator accounts is handled by the Super Admin.
+                      </div>
+                    </div>
+                  )}
 
                   {/* Registered Admins List */}
                   <div>
@@ -1324,7 +1583,18 @@ export default function AdminModal() {
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: '#121212', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '14px' }}>
+                              <div style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '50%',
+                                backgroundColor: adm.role === 'Super Admin' ? '#121212' : '#0F5132',
+                                color: '#FFFFFF',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 800,
+                                fontSize: '14px'
+                              }}>
                                 {adm.name?.charAt(0).toUpperCase() || 'A'}
                               </div>
                               <div>
@@ -1332,15 +1602,25 @@ export default function AdminModal() {
                                   <span>{adm.name}</span>
                                   {isSelf && (
                                     <span style={{ fontSize: '10px', background: '#D2F4EA', color: '#0F5132', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                                      You
+                                      You (Current)
                                     </span>
                                   )}
+                                  <span style={{
+                                    fontSize: '10px',
+                                    background: adm.role === 'Super Admin' ? '#FDE8ED' : '#E8F5E9',
+                                    color: adm.role === 'Super Admin' ? '#C75678' : '#2E7D32',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700
+                                  }}>
+                                    {adm.role}
+                                  </span>
                                 </div>
-                                <div style={{ fontSize: '12px', color: '#736C65' }}>{adm.email} • Role: <strong>{adm.role}</strong></div>
+                                <div style={{ fontSize: '12px', color: '#736C65' }}>{adm.email}</div>
                               </div>
                             </div>
 
-                            {!isSelf && (
+                            {isSuperAdmin && !isSelf && (
                               <button
                                 onClick={() => {
                                   if (confirm(`Remove admin account for ${adm.email}?`)) {
@@ -1363,6 +1643,20 @@ export default function AdminModal() {
 
               {/* TAB 5: Database & Supabase Settings */}
               {activeTab === 'database' && (
+                !isSuperAdmin ? (
+                  <div style={{ maxWidth: '560px', margin: '30px auto', textAlign: 'center', background: '#FAF7F2', padding: '36px 24px', borderRadius: '16px', border: '1px solid var(--border-card)' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#FDE8ED', color: '#C75678', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+                      <Lock style={{ width: '26px', height: '26px' }} />
+                    </div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#121212', margin: '0 0 8px 0' }}>Super Admin Access Required</h3>
+                    <p style={{ fontSize: '13px', color: '#736C65', lineHeight: 1.5, margin: '0 0 20px 0' }}>
+                      Direct cloud database configuration and SQL schema management are reserved for the Super Admin. As a Store Admin, you have full access to manage Products, Multi-Picture Catalog, Stock, and Customer Orders.
+                    </p>
+                    <button onClick={() => setActiveTab('inventory')} className="btn-primary" style={{ padding: '10px 20px', fontSize: '13px' }}>
+                      Go to Products & Inventory
+                    </button>
+                  </div>
+                ) : (
                 <div style={{ maxWidth: '680px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
                   <div>
                     <h3 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 6px 0', color: '#121212' }}>
@@ -1484,6 +1778,7 @@ CREATE TABLE public.orders (
                     )}
                   </form>
                 </div>
+                )
               )}
 
               {/* TAB 6: Site Customization */}

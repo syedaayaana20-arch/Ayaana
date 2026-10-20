@@ -17,12 +17,12 @@ CREATE TABLE IF NOT EXISTS public.admins (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert Default Super Admin
+-- Insert Default Administrators
 INSERT INTO public.admins (name, email, password_hash, role)
 VALUES 
     ('Basit Nayab', 'basitmalix01@gmail.com', 'Muhana5424@.', 'Super Admin'),
-    ('Syeda Ayaana', 'admin@ayaanas.com', 'ayaana123', 'Store Manager')
-ON CONFLICT (email) DO NOTHING;
+    ('Syeda Ayaana', 'Syedaayaana20@gmail.com', 'Ayaanaali69$', 'Store Admin')
+ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role;
 
 -- 3. Products Table
 CREATE TABLE IF NOT EXISTS public.products (

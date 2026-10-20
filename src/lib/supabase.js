@@ -6,8 +6,8 @@
 const STORAGE_KEY_URL = 'ayaana_supabase_url';
 const STORAGE_KEY_ANON = 'ayaana_supabase_anon';
 
-const DEFAULT_SUPABASE_URL = 'https://mwcdfyjtdomkihsshjsu.supabase.co';
-const DEFAULT_SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13Y2RmeWp0ZG9ta2loc3NoanN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MDgxMDUsImV4cCI6MjEwNTk4NDEwNX0.I0T_s7hO2T-Jd4IkX5G6j30WMHvy-hdp4DnUQspCe9A';
+const DEFAULT_SUPABASE_URL = 'https://piqsnvnrjedkhlpomktq.supabase.co';
+const DEFAULT_SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpcXNudm5yamVka2hscG9ta3RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0ODk2NjcsImV4cCI6MjEwODA2NTY2N30.rnfWH0ZHZiBn_rrOcsXQ0qQG5cmwdRT0HEPpPHdvS58';
 
 export function getSupabaseConfig() {
   const url = localStorage.getItem(STORAGE_KEY_URL) || import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;

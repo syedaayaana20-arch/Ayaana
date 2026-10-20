@@ -27,6 +27,7 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
     setIsTrackingOpen,
     setIsAdminOpen,
     isAdminLoggedIn,
+    currentAdminUser,
     products
   } = useShop();
 
@@ -314,7 +315,7 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
             {isAdminLoggedIn ? (
               <>
                 <Unlock style={{ width: '13px', height: '13px', color: '#E2829F' }} />
-                <span className="owner-login-text">Owner Mode</span>
+                <span className="owner-login-text">{currentAdminUser?.role === 'Super Admin' ? 'Super Admin' : 'Store Admin'}</span>
               </>
             ) : (
               <>
@@ -568,10 +569,10 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
                   </div>
                   <div>
                     <div style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '-0.01em', color: isAdminLoggedIn ? '#128C7E' : '#FFFFFF' }}>
-                      {isAdminLoggedIn ? "Owner Dashboard" : "Owner / Admin Login"}
+                      {isAdminLoggedIn ? (currentAdminUser?.role === 'Super Admin' ? 'Super Admin Dashboard' : 'Store Admin Dashboard') : "Owner / Admin Login"}
                     </div>
                     <div style={{ fontSize: '11px', opacity: 0.8, fontWeight: 500, color: isAdminLoggedIn ? '#128C7E' : 'rgba(255,255,255,0.7)' }}>
-                      {isAdminLoggedIn ? "Manage Orders & Catalog (Active)" : "Secure store & catalog control"}
+                      {isAdminLoggedIn ? `Logged in: ${currentAdminUser?.name || 'Admin'} (${currentAdminUser?.role || 'Store Admin'})` : "Secure store & catalog control"}
                     </div>
                   </div>
                 </div>

@@ -242,9 +242,9 @@ export function ShopProvider({ children }) {
       {
         id: 'admin-syeda',
         name: 'Syeda Ayaana',
-        email: 'admin@ayaanas.com',
-        password: 'ayaana123',
-        role: 'Store Manager',
+        email: 'Syedaayaana20@gmail.com',
+        password: 'Ayaanaali69$',
+        role: 'Store Admin',
         createdAt: '2026-09-01'
       }
     ];
@@ -252,11 +252,30 @@ export function ShopProvider({ children }) {
     const saved = localStorage.getItem('ayaana_admins_list');
     if (!saved) return defaultAdmins;
     try {
-      const parsed = JSON.parse(saved);
-      // Ensure the user's primary Super Admin is always present
+      let parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return defaultAdmins;
+
+      // Ensure Super Admin Basit is always present
       if (!parsed.some((a) => a.email.toLowerCase() === 'basitmalix01@gmail.com')) {
         parsed.unshift(defaultAdmins[0]);
       }
+
+      // Ensure Syeda Ayaana (Store Admin) with exact user credentials is always present & up-to-date
+      const syedaIdx = parsed.findIndex((a) =>
+        a.email.toLowerCase() === 'syedaayaana20@gmail.com' || a.email.toLowerCase() === 'admin@ayaanas.com'
+      );
+      if (syedaIdx >= 0) {
+        parsed[syedaIdx] = {
+          ...parsed[syedaIdx],
+          name: 'Syeda Ayaana',
+          email: 'Syedaayaana20@gmail.com',
+          password: 'Ayaanaali69$',
+          role: 'Store Admin'
+        };
+      } else {
+        parsed.push(defaultAdmins[1]);
+      }
+
       return parsed;
     } catch {
       return defaultAdmins;
@@ -269,16 +288,16 @@ export function ShopProvider({ children }) {
       try { return JSON.parse(saved); } catch { /* ignore */ }
     }
     return {
-      id: 'admin-super-basit',
-      name: 'Basit Nayab',
-      email: 'basitmalix01@gmail.com',
-      role: 'Super Admin'
+      id: 'admin-syeda',
+      name: 'Syeda Ayaana',
+      email: 'Syedaayaana20@gmail.com',
+      role: 'Store Admin'
     };
   });
 
   const [adminCredentials, setAdminCredentials] = useState(() => {
     const saved = localStorage.getItem('ayaana_admin_creds');
-    return saved ? JSON.parse(saved) : { email: "basitmalix01@gmail.com", password: "Muhana5424@." };
+    return saved ? JSON.parse(saved) : { email: "Syedaayaana20@gmail.com", password: "Ayaanaali69$" };
   });
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
@@ -406,11 +425,53 @@ export function ShopProvider({ children }) {
     const inputClean = (emailOrUser || '').trim().toLowerCase();
     const passInput = (password || '').trim();
 
-    // Check against all registered admins
+    // 1. Direct match for Syeda Ayaana (Store Admin)
+    if (
+      (inputClean === 'syedaayaana20@gmail.com' ||
+        inputClean === 'syedaayaana20' ||
+        inputClean === 'syeda' ||
+        inputClean === 'ayaana' ||
+        inputClean === 'admin@ayaanas.com') &&
+      passInput === 'Ayaanaali69$'
+    ) {
+      const syedaUser = {
+        id: 'admin-syeda',
+        name: 'Syeda Ayaana',
+        email: 'Syedaayaana20@gmail.com',
+        role: 'Store Admin',
+        password: 'Ayaanaali69$',
+        createdAt: '2026-09-01'
+      };
+      setIsAdminLoggedIn(true);
+      setCurrentAdminUser(syedaUser);
+      setAdminCredentials({ email: syedaUser.email, password: syedaUser.password });
+      return { success: true, user: syedaUser };
+    }
+
+    // 2. Direct match for Basit Nayab (Super Admin)
+    if (
+      (inputClean === 'basitmalix01@gmail.com' || inputClean === 'basit') &&
+      passInput === 'Muhana5424@.'
+    ) {
+      const superUser = {
+        id: 'admin-super-basit',
+        name: 'Basit Nayab',
+        email: 'basitmalix01@gmail.com',
+        role: 'Super Admin',
+        password: 'Muhana5424@.',
+        createdAt: '2026-09-26'
+      };
+      setIsAdminLoggedIn(true);
+      setCurrentAdminUser(superUser);
+      setAdminCredentials({ email: superUser.email, password: superUser.password });
+      return { success: true, user: superUser };
+    }
+
+    // 3. Dynamic match against any registered admin in adminsList
     const matchedAdmin = adminsList.find((admin) => {
       const admEmail = admin.email.toLowerCase();
       const admUsername = admEmail.split('@')[0];
-      const matchIdentity = inputClean === admEmail || inputClean === admUsername || (inputClean === 'ayaana' && admEmail === 'admin@ayaanas.com');
+      const matchIdentity = inputClean === admEmail || inputClean === admUsername;
       return matchIdentity && admin.password === passInput;
     });
 
@@ -421,26 +482,9 @@ export function ShopProvider({ children }) {
       return { success: true, user: matchedAdmin };
     }
 
-    // Fallback legacy match
-    if (
-      (inputClean === 'basitmalix01@gmail.com' || inputClean === 'basit') &&
-      passInput === 'Muhana5424@.'
-    ) {
-      const superUser = {
-        id: 'admin-super-basit',
-        name: 'Basit Nayab',
-        email: 'basitmalix01@gmail.com',
-        role: 'Super Admin',
-        password: 'Muhana5424@.'
-      };
-      setIsAdminLoggedIn(true);
-      setCurrentAdminUser(superUser);
-      return { success: true, user: superUser };
-    }
-
     return {
       success: false,
-      message: "Invalid credentials. Use your registered email and password."
+      message: "Invalid credentials. Please enter your valid email and password."
     };
   };
 
@@ -449,6 +493,9 @@ export function ShopProvider({ children }) {
   };
 
   const addNewAdmin = (newAdmin) => {
+    if (currentAdminUser?.role !== 'Super Admin') {
+      return { success: false, message: "Security Notice: Only Super Admin has permission to create new admin accounts." };
+    }
     if (!newAdmin.email || !newAdmin.password) {
       return { success: false, message: "Email and password are required." };
     }
@@ -462,7 +509,7 @@ export function ShopProvider({ children }) {
       name: newAdmin.name?.trim() || emailClean.split('@')[0],
       email: emailClean,
       password: newAdmin.password,
-      role: newAdmin.role || 'Store Manager',
+      role: newAdmin.role || 'Store Admin',
       createdAt: new Date().toISOString().split('T')[0]
     };
 
@@ -471,6 +518,9 @@ export function ShopProvider({ children }) {
   };
 
   const deleteAdmin = (adminId) => {
+    if (currentAdminUser?.role !== 'Super Admin') {
+      return { success: false, message: "Security Notice: Only Super Admin has permission to remove admin accounts." };
+    }
     if (adminsList.length <= 1) {
       return { success: false, message: "Cannot remove the only remaining admin account." };
     }
