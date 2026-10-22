@@ -120,8 +120,31 @@ export default function ReviewsSection() {
   };
 
 
-  // Use admin-managed reviews from context
-  const reviews = siteReviews || [];
+  // STRICT FILTER: Only display reviews whose product exists in the current active product catalog
+  const activeProductNames = new Set((products || []).map((p) => p.name.trim().toLowerCase()));
+  const activeProductIds = new Set((products || []).map((p) => p.id));
+
+  const reviews = (siteReviews || []).filter((rev) => {
+    if (!rev || !rev.product) return false;
+    const nameLower = rev.product.trim().toLowerCase();
+
+    // Explicitly reject any deprecated or non-existent product reviews
+    if (
+      nameLower.includes('complex + skin repair') ||
+      nameLower.includes('radiance skin repair') ||
+      nameLower.includes('night balm') ||
+      nameLower.includes('miracle glow') ||
+      nameLower.includes('bundle') ||
+      nameLower.includes('herbal whitening & radiance toner') ||
+      nameLower.includes('clarifying cleanser') ||
+      nameLower.includes('body treatment') ||
+      nameLower.includes('plumping serum')
+    ) {
+      return false;
+    }
+
+    return activeProductNames.has(nameLower) || (rev.productId && activeProductIds.has(rev.productId));
+  });
 
 
 

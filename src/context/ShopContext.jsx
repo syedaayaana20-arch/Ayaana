@@ -190,7 +190,7 @@ export function ShopProvider({ children }) {
   });
 
   // Admin-managed reviews covering all official active products on website
-  const REVIEWS_STORAGE_VERSION = 'ayaana_reviews_v3_products';
+  const REVIEWS_STORAGE_VERSION = 'ayaana_reviews_v5_strict';
 
   const DEFAULT_REVIEWS = [
     {
@@ -287,21 +287,22 @@ export function ShopProvider({ children }) {
     const version = localStorage.getItem('ayaana_reviews_version');
     const saved = localStorage.getItem('ayaana_reviews');
 
-    let hasDeprecated = false;
-    if (saved) {
+    if (saved && version === REVIEWS_STORAGE_VERSION) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          hasDeprecated = parsed.some(r =>
-            !r.product ||
-            r.product.includes('Complex + Skin Repair') ||
-            r.product.includes('Radiance Skin Repair Cream') ||
-            r.product.includes('Miracle Glow Night Balm') ||
-            r.product.includes('Complete Radiance Bundle') ||
-            r.product.includes('Herbal Whitening & Radiance Toner')
-          );
-          if (!hasDeprecated && version === REVIEWS_STORAGE_VERSION) {
-            return parsed;
+          const cleaned = parsed.filter(r => {
+            if (!r || !r.product) return false;
+            const n = r.product.trim().toLowerCase();
+            return !n.includes('complex + skin repair') &&
+                   !n.includes('radiance skin repair') &&
+                   !n.includes('night balm') &&
+                   !n.includes('miracle glow') &&
+                   !n.includes('bundle') &&
+                   !n.includes('herbal whitening & radiance toner');
+          });
+          if (cleaned.length > 0) {
+            return cleaned;
           }
         }
       } catch {}
@@ -312,6 +313,37 @@ export function ShopProvider({ children }) {
     localStorage.setItem('ayaana_reviews', JSON.stringify(DEFAULT_REVIEWS));
     return DEFAULT_REVIEWS;
   });
+
+  // Auto-purge any reviews for deleted or non-existent products whenever products list updates
+  useEffect(() => {
+    if (!products || products.length === 0) return;
+    const activeNames = new Set(products.map(p => p.name.trim().toLowerCase()));
+    const activeIds = new Set(products.map(p => p.id));
+
+    setSiteReviews((prev) => {
+      const filtered = prev.filter(r => {
+        if (!r || !r.product) return false;
+        const n = r.product.trim().toLowerCase();
+        if (
+          n.includes('complex + skin repair') ||
+          n.includes('radiance skin repair') ||
+          n.includes('night balm') ||
+          n.includes('miracle glow') ||
+          n.includes('bundle') ||
+          n.includes('herbal whitening & radiance toner')
+        ) {
+          return false;
+        }
+        return activeNames.has(n) || (r.productId && activeIds.has(r.productId));
+      });
+
+      if (filtered.length !== prev.length) {
+        localStorage.setItem('ayaana_reviews', JSON.stringify(filtered));
+        return filtered;
+      }
+      return prev;
+    });
+  }, [products]);
 
   // Girl's Image / Living Model Routine Products
   const [portraitProductIds, setPortraitProductIds] = useState(() => {
