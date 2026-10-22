@@ -20,14 +20,20 @@ export default function ThreeBackground() {
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
     camera.position.z = 300;
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: false,
-      powerPreference: "high-performance"
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    container.appendChild(renderer.domElement);
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: false,
+        powerPreference: "high-performance"
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      container.appendChild(renderer.domElement);
+    } catch (err) {
+      console.warn("ThreeBackground WebGL not available:", err);
+      return;
+    }
 
     // Particle Geometry
     const particleCount = 180;
@@ -138,13 +144,15 @@ export default function ThreeBackground() {
       cancelAnimationFrame(animId);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('resize', onResize);
-      renderer.dispose();
-      geometry.dispose();
-      material.dispose();
-      pTexture.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
+      if (renderer) {
+        renderer.dispose();
+        if (container.contains(renderer.domElement)) {
+          container.removeChild(renderer.domElement);
+        }
       }
+      if (geometry) geometry.dispose();
+      if (material) material.dispose();
+      if (pTexture) pTexture.dispose();
     };
   }, []);
 

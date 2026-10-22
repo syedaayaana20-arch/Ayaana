@@ -13,6 +13,7 @@ export default function CustomCursor() {
   const animFrameRef = useRef(null);
   const lastSparkleTime = useRef(0);
   const hoverStateRef = useRef({ text: false, interactive: false });
+  const isVisibleRef = useRef(false);
 
   useEffect(() => {
     // Check if touch device - don't show custom cursor on touch screens
@@ -27,7 +28,10 @@ export default function CustomCursor() {
         dotRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
       }
 
-      if (!isVisible) setIsVisible(true);
+      if (!isVisibleRef.current) {
+        isVisibleRef.current = true;
+        setIsVisible(true);
+      }
 
       // Throttled sparkle emission (max 1 every 100ms)
       const now = Date.now();
@@ -64,6 +68,7 @@ export default function CustomCursor() {
     };
 
     const onMouseLeave = () => {
+      isVisibleRef.current = false;
       setIsVisible(false);
     };
 
@@ -91,7 +96,7 @@ export default function CustomCursor() {
       document.removeEventListener('mouseleave', onMouseLeave);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [isVisible]);
+  }, []);
 
   if (!isVisible) return null;
 

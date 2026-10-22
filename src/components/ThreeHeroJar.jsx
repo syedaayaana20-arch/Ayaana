@@ -18,19 +18,24 @@ export default function ThreeHeroJar({ className = "" }) {
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
     camera.position.set(0, 0.72, 3.8);
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: "high-performance"
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-    container.appendChild(renderer.domElement);
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: "high-performance"
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+    } catch (err) {
+      console.warn("ThreeHeroJar WebGL not available:", err);
+      return;
+    }
 
     // Root Group for rotations
     const jarGroup = new THREE.Group();
@@ -342,37 +347,37 @@ export default function ThreeHeroJar({ className = "" }) {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       domElem.removeEventListener('mousedown', handlePointerDown);
-      window.removeEventListener('mousemove', handlePointerMove);
-      window.removeEventListener('mouseup', handlePointerUp);
-      domElem.removeEventListener('touchstart', handlePointerDown);
+      if (domElem) {
+        domElem.removeEventListener('touchstart', handlePointerDown);
+      }
       window.removeEventListener('touchmove', handlePointerMove);
       window.removeEventListener('touchend', handlePointerUp);
 
       // Clean up WebGL resources
-      renderer.dispose();
-      tubGeo.dispose();
-      tubBottomGeo.dispose();
-      creamGeo.dispose();
-      neckGeo.dispose();
-      ringGeo.dispose();
-      capGeo.dispose();
-      capBevelGeo.dispose();
-      stickerGeo.dispose();
-      pedestalGeo.dispose();
-      shadowGeo.dispose();
-      particleGeo.dispose();
-      pinkPorcelainMaterial.dispose();
-      whiteThreadMaterial.dispose();
-      creamMaterial.dispose();
-      roseGoldTrimMaterial.dispose();
-      stickerMaterial.dispose();
-      pedestalMaterial.dispose();
-      shadowMaterial.dispose();
-      particleMaterial.dispose();
-      shadowTexture.dispose();
-      stickerTexture.dispose();
-      pTexture.dispose();
-      if (container.contains(domElem)) {
+      if (renderer) renderer.dispose();
+      tubGeo?.dispose();
+      tubBottomGeo?.dispose();
+      creamGeo?.dispose();
+      neckGeo?.dispose();
+      ringGeo?.dispose();
+      capGeo?.dispose();
+      capBevelGeo?.dispose();
+      stickerGeo?.dispose();
+      pedestalGeo?.dispose();
+      shadowGeo?.dispose();
+      particleGeo?.dispose();
+      pinkPorcelainMaterial?.dispose();
+      whiteThreadMaterial?.dispose();
+      creamMaterial?.dispose();
+      roseGoldTrimMaterial?.dispose();
+      stickerMaterial?.dispose();
+      pedestalMaterial?.dispose();
+      shadowMaterial?.dispose();
+      particleMaterial?.dispose();
+      shadowTexture?.dispose();
+      stickerTexture?.dispose();
+      pTexture?.dispose();
+      if (domElem && container && container.contains(domElem)) {
         container.removeChild(domElem);
       }
     };

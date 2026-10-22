@@ -40,17 +40,22 @@ export default function ZeroGravityCanvasEngine({
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
     camera.position.set(0, 0, 5.0);
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: "high-performance"
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
-
-    container.appendChild(renderer.domElement);
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: "high-performance"
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
+      container.appendChild(renderer.domElement);
+    } catch (err) {
+      console.warn("ZeroGravityCanvasEngine WebGL not available:", err);
+      return;
+    }
 
     // 2. Lighting setup tailored for floating glass droplets & rose petals
     const ambientLight = new THREE.AmbientLight(0xfff0f5, 1.5);
@@ -465,19 +470,19 @@ export default function ZeroGravityCanvasEngine({
       container.removeEventListener('pointerup', handlePointerUp);
       container.removeEventListener('pointerleave', handlePointerUp);
 
-      if (container.contains(renderer.domElement)) {
+      if (renderer?.domElement && container?.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
 
-      renderer.dispose();
-      petalGeo.dispose();
-      petalMaterial1.dispose();
-      petalMaterial2.dispose();
-      petalMaterial3.dispose();
-      dropletMaterial.dispose();
-      goldMaterial.dispose();
-      stardustGeo.dispose();
-      stardustMat.dispose();
+      if (renderer) renderer.dispose();
+      petalGeo?.dispose();
+      petalMaterial1?.dispose();
+      petalMaterial2?.dispose();
+      petalMaterial3?.dispose();
+      dropletMaterial?.dispose();
+      goldMaterial?.dispose();
+      stardustGeo?.dispose();
+      stardustMat?.dispose();
     };
   }, []);
 

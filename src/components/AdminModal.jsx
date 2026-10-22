@@ -2011,7 +2011,7 @@ CREATE TABLE public.orders (
                         }
                         addReview({
                           ...newReview,
-                          product: newReview.product || (products[0]?.name || 'Radiance Skin Repair Cream')
+                          product: newReview.product || (products[0]?.name || 'Face Whitening Cream')
                         });
                         setNewReview({
                           name: '',

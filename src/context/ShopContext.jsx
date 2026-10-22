@@ -189,19 +189,127 @@ export function ShopProvider({ children }) {
     };
   });
 
-  // Admin-managed reviews
+  // Admin-managed reviews covering all official active products on website
+  const REVIEWS_STORAGE_VERSION = 'ayaana_reviews_v3_products';
+
   const DEFAULT_REVIEWS = [
-    { id: 1, name: 'Sania Tariq', city: 'Lahore', product: 'Hand & Foot Complex + Skin Repair Cream', rating: 5, date: '3 days ago', text: 'Se boht zyada bright howy n 😊 Mai apko before and after ke picture bi send krti hu abi 🤗 Mere dark knuckles par koi cream asar nahi kar rahi thi, Ayaana\'s ke 1 week use ke baad difference clear hai!', verified: true },
-    { id: 2, name: 'Dr. Fatima Zahra', city: 'Islamabad', product: 'Radiance Skin Repair Cream', rating: 5, date: '1 week ago', text: 'As a physician, I check ingredient lists very strictly. The balance of 5% niacinamide with pure bio-ceramides is formulated to international dermatology standards. My dry winter skin has completely healed.', verified: true },
-    { id: 3, name: 'Areeba Khan', city: 'Karachi', product: '24K Gold Radiance Glow Serum', rating: 5, date: '2 weeks ago', text: 'The gold serum gives an unbelievable glass-skin dewy finish under makeup! Not sticky at all, it absorbs in 30 seconds and gives this ethereal lit-from-within glow.', verified: true },
-    { id: 4, name: 'Hira Mansoor', city: 'Faisalabad', product: 'Herbal Whitening & Radiance Toner', rating: 5, date: '2 weeks ago', text: 'The natural rose hydrosol smell is divine. My enlarged pores around the nose area tightened up so fast. Best toner I have ever used in Pakistan.', verified: true },
-    { id: 5, name: 'Zainab Mir', city: 'Dubai, UAE', product: 'Complete Radiance Bundle', rating: 5, date: '3 weeks ago', text: 'Ordered the full collection to Dubai and it arrived via DHL safely packed with luxury gift ribbon. The packaging looks so high end, exactly like French luxury cosmetic brands.', verified: true },
-    { id: 6, name: 'Mahnoor Bilal', city: 'Rawalpindi', product: 'Miracle Glow Night Balm', rating: 5, date: '1 month ago', text: 'Waking up with zero dullness is real! My skin feels super soft and plump every morning. Ayaana is also very responsive on WhatsApp for advice.', verified: true }
+    {
+      id: 1,
+      name: 'Sania Tariq',
+      city: 'Lahore',
+      productId: 'hand-and-feet-whitening-cream',
+      product: 'Hand and Feet Whitening Cream',
+      rating: 5,
+      date: '3 days ago',
+      text: 'Se boht zyada bright howy n 😊 Mai apko before and after ke picture bi send krti hu abi 🤗 Mere dark knuckles aur feet par koi cream asar nahi kar rahi thi, Ayaana\'s ke 1 week use ke baad difference clear hai!',
+      verified: true
+    },
+    {
+      id: 2,
+      name: 'Dr. Fatima Zahra',
+      city: 'Islamabad',
+      productId: 'face-whitening-cream',
+      product: 'Face Whitening Cream',
+      rating: 5,
+      date: '5 days ago',
+      text: 'As a physician, I check ingredient lists very strictly. The 5% niacinamide and pure rose hydrosol formula gives spotless brightness without causing any redness or skin peeling. 100% gentle and effective.',
+      verified: true
+    },
+    {
+      id: 3,
+      name: 'Areeba Khan',
+      city: 'Karachi',
+      productId: '24k-gold-radiance-glow-serum',
+      product: '24K Gold Radiance Glow Serum',
+      rating: 5,
+      date: '1 week ago',
+      text: 'The gold serum gives an unbelievable glass-skin dewy finish under makeup! Not sticky at all, it absorbs in 30 seconds and gives this ethereal lit-from-within glow.',
+      verified: true
+    },
+    {
+      id: 4,
+      name: 'Mahnoor Bilal',
+      city: 'Rawalpindi',
+      productId: 'ayaana-herbal-hair-shampoo',
+      product: 'Ayaana Herbal Hair Shampoo',
+      rating: 5,
+      date: '1 week ago',
+      text: 'Amla, Reetha aur Shikakai ka genuine sulfate-free herbal shampoo hai! Hair fall pehle 2-3 washes mein hi drastically stop ho gaya aur baal boht silky, soft aur naturally glossy lagte hain.',
+      verified: true
+    },
+    {
+      id: 5,
+      name: 'Zainab Mir',
+      city: 'Multan',
+      productId: 'ayaana-herbal-oil',
+      product: 'Ayaana Herbal Oil',
+      rating: 5,
+      date: '2 weeks ago',
+      text: 'Kalonji aur Rosemary oil ki blend kamal hai! Scalp ki dryness aur dandruff khatam ho gayi, aur hair roots visibly strong ho gaye hain. Pure non-greasy organic formulation.',
+      verified: true
+    },
+    {
+      id: 6,
+      name: 'Farah Siddiqui',
+      city: 'Karachi',
+      productId: 'natural-weight-loss-powder',
+      product: 'Natural Weight Loss Powder',
+      rating: 5,
+      date: '2 weeks ago',
+      text: '100% natural herbal formula hai, zero synthetic chemicals. Daily warm water ke sath lene se bloating khatam ho gayi aur metabolism boht active ho gaya. Already lost 3.5 kg naturally!',
+      verified: true
+    },
+    {
+      id: 7,
+      name: 'Anum Sheikh',
+      city: 'Faisalabad',
+      productId: 'natural-glow-mask',
+      product: 'Natural Glow Mask',
+      rating: 5,
+      date: '3 weeks ago',
+      text: 'Instantly dullness khatam kar deta hai! 15 minutes lagane ke baad skin aese glowing aur fresh lagti hai jaise parlor se expensive facial karwaya ho. Kaolin clay aur rose extract se pores bhi tight ho gaye.',
+      verified: true
+    },
+    {
+      id: 8,
+      name: 'Hira Mansoor',
+      city: 'Sialkot',
+      productId: 'whitening-toner',
+      product: 'Whitening Toner',
+      rating: 5,
+      date: '3 weeks ago',
+      text: 'The natural rose hydrosol smell is divine. My enlarged pores around the nose and cheeks tightened up so fast, and skin stays hydrated & fresh all day. Best toner I have ever used in Pakistan.',
+      verified: true
+    }
   ];
 
   const [siteReviews, setSiteReviews] = useState(() => {
+    const version = localStorage.getItem('ayaana_reviews_version');
     const saved = localStorage.getItem('ayaana_reviews');
-    if (saved) { try { return JSON.parse(saved); } catch {} }
+
+    let hasDeprecated = false;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          hasDeprecated = parsed.some(r =>
+            !r.product ||
+            r.product.includes('Complex + Skin Repair') ||
+            r.product.includes('Radiance Skin Repair Cream') ||
+            r.product.includes('Miracle Glow Night Balm') ||
+            r.product.includes('Complete Radiance Bundle') ||
+            r.product.includes('Herbal Whitening & Radiance Toner')
+          );
+          if (!hasDeprecated && version === REVIEWS_STORAGE_VERSION) {
+            return parsed;
+          }
+        }
+      } catch {}
+    }
+
+    // Auto-migrate to current website products reviews
+    localStorage.setItem('ayaana_reviews_version', REVIEWS_STORAGE_VERSION);
+    localStorage.setItem('ayaana_reviews', JSON.stringify(DEFAULT_REVIEWS));
     return DEFAULT_REVIEWS;
   });
 
@@ -209,7 +317,7 @@ export function ShopProvider({ children }) {
   const [portraitProductIds, setPortraitProductIds] = useState(() => {
     const saved = localStorage.getItem('ayaana_portrait_products');
     if (saved) { try { return JSON.parse(saved); } catch {} }
-    return ['face-whitening-cream', 'herbal-whitening-toner'];
+    return ['face-whitening-cream', 'whitening-toner'];
   });
   const [isPortraitModalOpen, setIsPortraitModalOpen] = useState(false);
 
@@ -318,9 +426,9 @@ export function ShopProvider({ children }) {
         address: "Gulberg III, Lahore",
         paymentMethod: "Cash on Delivery (COD)",
         items: [
-          { name: "Radiance Skin Repair Cream", volume: "50ml", quantity: 1, pricePKR: 2850, priceUSD: 18 }
+          { name: "Face Whitening Cream", volume: "50g", quantity: 1, pricePKR: 1199, priceUSD: 8.50 }
         ],
-        total: 2850,
+        total: 1199,
         currency: "PKR",
         status: "In Transit",
         date: "2026-09-18",
@@ -360,8 +468,11 @@ export function ShopProvider({ children }) {
           const cleanProducts = mapped.filter((p) => !deletedIds.has(p.id) && !DEPRECATED_PRODUCT_IDS.has(p.id));
 
           if (isMounted && cleanProducts.length > 0) {
-            setProducts(cleanProducts);
-            localStorage.setItem('ayaana_products', JSON.stringify(cleanProducts));
+            const dbIds = new Set(cleanProducts.map(p => p.id));
+            const missingLocals = PRODUCTS.filter(p => !dbIds.has(p.id) && !deletedIds.has(p.id) && !DEPRECATED_PRODUCT_IDS.has(p.id));
+            const finalMerged = [...cleanProducts, ...missingLocals];
+            setProducts(finalMerged);
+            localStorage.setItem('ayaana_products', JSON.stringify(finalMerged));
           }
         }
       } catch (e) {

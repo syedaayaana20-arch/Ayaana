@@ -3,7 +3,7 @@ import { Star, CheckCircle2, ChevronLeft, ChevronRight, Pause, Play, Sparkles, S
 import { useShop } from '../context/ShopContext';
 
 export default function ReviewsSection() {
-  const { siteReviews } = useShop();
+  const { siteReviews, products, setActiveProduct } = useShop();
 
   // Provided customer result images
   const customerProofImages = [
@@ -522,9 +522,39 @@ export default function ReviewsSection() {
                     <h4 style={{ fontSize: '13.5px', fontWeight: 700, color: '#121212' }}>{rev.name}</h4>
                     <span style={{ fontSize: '11px', color: '#736C65' }}>• {rev.city}</span>
                   </div>
-                  <div style={{ fontSize: '11px', color: '#C75678', fontWeight: 600, marginTop: '2px' }}>
-                    {rev.product}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const matched = products?.find(
+                        p => (rev.productId && p.id === rev.productId) || 
+                             p.name.toLowerCase() === (rev.product || '').toLowerCase()
+                      );
+                      if (matched && setActiveProduct) {
+                        setActiveProduct(matched);
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      textAlign: 'left',
+                      fontSize: '11px',
+                      color: '#C75678',
+                      fontWeight: 600,
+                      marginTop: '2px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      textDecoration: 'underline',
+                      textDecorationColor: 'rgba(199, 86, 120, 0.35)',
+                      textUnderlineOffset: '2px'
+                    }}
+                    title="Click to view product"
+                  >
+                    <span>{rev.product}</span>
+                    <span style={{ fontSize: '9px', opacity: 0.8 }}>↗</span>
+                  </button>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#128C7E', fontSize: '11px', fontWeight: 600 }}>

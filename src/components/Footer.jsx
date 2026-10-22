@@ -80,7 +80,7 @@ export default function Footer({ onCategorySelect, onScrollToSection }) {
                   onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
                   onMouseLeave={(e) => e.target.style.color = '#A89F95'}
                 >
-                  Radiance Skin Repair Creams
+                  Whitening & Repair Creams
                 </button>
               </li>
               <li>

@@ -73,17 +73,22 @@ export default function ThreeProductViewer({ productName = "Radiance Cream", cla
       camera.position.set(0, 0.35, 3.7);
     }
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: "high-performance"
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
-
-    container.appendChild(renderer.domElement);
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: "high-performance"
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.25;
+      container.appendChild(renderer.domElement);
+    } catch (err) {
+      console.warn("ThreeProductViewer WebGL not available:", err);
+      return;
+    }
 
     const modelGroup = new THREE.Group();
     scene.add(modelGroup);
@@ -817,8 +822,8 @@ export default function ThreeProductViewer({ productName = "Radiance Cream", cla
       if (lidTexture) lidTexture.dispose();
       if (bodyTexture) bodyTexture.dispose();
       if (tonerLabelTexture) tonerLabelTexture.dispose();
-      renderer.dispose();
-      if (container.contains(dom)) container.removeChild(dom);
+      if (renderer) renderer.dispose();
+      if (dom && container && container.contains(dom)) container.removeChild(dom);
     };
   }, [productName, isToner, isMask, isFaceWhiteningCream, isHandFeetCream]);
 
