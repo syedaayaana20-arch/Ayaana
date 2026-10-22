@@ -1,5 +1,4 @@
 import puppeteer from 'puppeteer-core';
-import fs from 'fs';
 
 async function run() {
   console.log('Launching Chrome...');

@@ -53,38 +53,32 @@ export default function ReviewsSection() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
   const slideDuration = 4000; // 4 seconds per slide
-  const timerRef = useRef(null);
   const progressTimerRef = useRef(null);
 
   // Auto-slide effect
   useEffect(() => {
     if (!isPlaying) {
-      if (timerRef.current) clearInterval(timerRef.current);
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
       return;
     }
 
-    setProgress(0);
     const progressInterval = 50; // update progress every 50ms
     const step = (progressInterval / slideDuration) * 100;
 
     progressTimerRef.current = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) return 100;
+        if (prev + step >= 100) {
+          setActiveImageIndex((prevIndex) => (prevIndex + 1) % customerProofImages.length);
+          return 0;
+        }
         return prev + step;
       });
     }, progressInterval);
 
-    timerRef.current = setInterval(() => {
-      setActiveImageIndex((prevIndex) => (prevIndex + 1) % customerProofImages.length);
-      setProgress(0);
-    }, slideDuration);
-
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     };
-  }, [isPlaying, activeImageIndex, customerProofImages.length]);
+  }, [isPlaying, customerProofImages.length, slideDuration]);
 
   const handleNext = () => {
     setActiveImageIndex((prev) => (prev + 1) % customerProofImages.length);

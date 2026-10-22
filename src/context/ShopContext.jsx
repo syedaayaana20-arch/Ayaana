@@ -16,7 +16,7 @@ export const DEPRECATED_PRODUCT_IDS = new Set([
   'radiance-skin-repair-cream'
 ]);
 
-export function getDeletedProductIds() {
+function getDeletedProductIds() {
   try {
     const raw = localStorage.getItem(DELETED_PRODUCTS_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
@@ -26,7 +26,7 @@ export function getDeletedProductIds() {
   }
 }
 
-export function saveDeletedProductIds(setOrArray) {
+function saveDeletedProductIds(setOrArray) {
   try {
     const arr = Array.from(setOrArray);
     localStorage.setItem(DELETED_PRODUCTS_KEY, JSON.stringify(arr));
@@ -35,7 +35,7 @@ export function saveDeletedProductIds(setOrArray) {
   }
 }
 
-export const mapDbToProduct = (dbProd) => ({
+const mapDbToProduct = (dbProd) => ({
   id: dbProd.id,
   name: dbProd.name,
   tagline: dbProd.tagline || '',
@@ -46,7 +46,7 @@ export const mapDbToProduct = (dbProd) => ({
   originalPricePKR: Number(dbProd.original_price_pkr) || Math.round((Number(dbProd.price_pkr) || 0) * 1.2),
   priceUSD: Number(dbProd.price_usd) || Number(((Number(dbProd.price_pkr) || 0) * 0.0036).toFixed(2)),
   originalPriceUSD: Number(((Number(dbProd.price_pkr) || 0) * 0.0036 * 1.2).toFixed(2)),
-  stock: dbProd.stock !== undefined ? Number(dbProd.stock) : 50,
+  stock: dbProd.stock !== undefined && dbProd.stock !== null && !isNaN(Number(dbProd.stock)) ? Number(dbProd.stock) : 50,
   badge: dbProd.badge || '',
   has3D: Boolean(dbProd.has_3d),
   isHero: false,
@@ -62,7 +62,7 @@ export const mapDbToProduct = (dbProd) => ({
   reviewsCount: Number(dbProd.reviews_count) || 100
 });
 
-export const mapProductToDb = (p) => ({
+const mapProductToDb = (p) => ({
   id: p.id,
   name: p.name,
   tagline: p.tagline || '',
@@ -72,7 +72,7 @@ export const mapProductToDb = (p) => ({
   price_pkr: Number(p.pricePKR) || 0,
   original_price_pkr: Number(p.originalPricePKR) || Math.round((Number(p.pricePKR) || 0) * 1.2),
   price_usd: Number(p.priceUSD) || Number(((Number(p.pricePKR) || 0) * 0.0036).toFixed(2)),
-  stock: Number(p.stock) !== undefined ? Number(p.stock) : 50,
+  stock: p.stock !== undefined && p.stock !== null && !isNaN(Number(p.stock)) ? Number(p.stock) : 50,
   badge: p.badge || '',
   image: p.image || (Array.isArray(p.images) && p.images[0]) || '',
   images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [p.image],
@@ -139,7 +139,17 @@ export function ShopProvider({ children }) {
   const [appliedDiscount, setAppliedDiscount] = useState(null); // { code, percent, label }
 
   // Modal / Drawer visibility
-  const [activeProduct, setActiveProduct] = useState(null);
+  const [activeProduct, setActiveProductRaw] = useState(null);
+
+  const setActiveProduct = (prod) => {
+    if (prod && typeof prod === 'object' && prod.id === 'radiance-skin-repair-cream') {
+      const faceCream = products.find(p => p.id === 'face-whitening-cream');
+      setActiveProductRaw(faceCream || prod);
+    } else {
+      setActiveProductRaw(prod);
+    }
+  };
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -155,14 +165,6 @@ export function ShopProvider({ children }) {
   useEffect(() => {
     window.__openAdmin = () => setIsAdminOpen(true);
   }, []);
-
-  // Auto-migrate activeProduct if currently viewing deprecated radiance-skin-repair-cream
-  useEffect(() => {
-    if (activeProduct && activeProduct.id === 'radiance-skin-repair-cream') {
-      const faceCream = products.find(p => p.id === 'face-whitening-cream');
-      if (faceCream) setActiveProduct(faceCream);
-    }
-  }, [activeProduct, products]);
 
   // ── Site Customization State ──────────────────────────────────────────────────
   // Hero Section settings
@@ -418,7 +420,7 @@ export function ShopProvider({ children }) {
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
     };
-  }, [activeProduct, isCartOpen, isWishlistOpen, isCheckoutOpen, isTrackingOpen, isAdminOpen]);
+  }, [activeProduct, isCartOpen, isWishlistOpen, isCheckoutOpen, isTrackingOpen, isAdminOpen, isPortraitModalOpen]);
 
   // Admin Auth Methods
   const adminLogin = (emailOrUser, password) => {
@@ -614,7 +616,7 @@ export function ShopProvider({ children }) {
       pricePKR: updatedPricePKR,
       priceUSD: Number((updatedPricePKR * 0.0036).toFixed(2)),
       originalPricePKR: Math.round(updatedPricePKR * 1.2),
-      stock: Number(updatedProd.stock) !== undefined ? Number(updatedProd.stock) : 50
+      stock: updatedProd.stock !== undefined && updatedProd.stock !== null && !isNaN(Number(updatedProd.stock)) ? Number(updatedProd.stock) : 50
     };
 
     setProducts((prev) => {
@@ -635,7 +637,7 @@ export function ShopProvider({ children }) {
         price_pkr: updatedPricePKR,
         original_price_pkr: Math.round(updatedPricePKR * 1.2),
         price_usd: Number((updatedPricePKR * 0.0036).toFixed(2)),
-        stock: Number(updatedProd.stock) !== undefined ? Number(updatedProd.stock) : 50,
+        stock: updatedProd.stock !== undefined && updatedProd.stock !== null && !isNaN(Number(updatedProd.stock)) ? Number(updatedProd.stock) : 50,
         badge: updatedProd.badge,
         image: primaryImage,
         images: imageList,
@@ -1009,6 +1011,7 @@ export function ShopProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react/only-export-components
 export function useShop() {
   const context = useContext(ShopContext);
   if (!context) {

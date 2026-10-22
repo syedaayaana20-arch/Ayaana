@@ -10,8 +10,7 @@ import {
   Play,
   Pause,
   Maximize2,
-  CheckCircle2,
-  Zap
+  CheckCircle2
 } from 'lucide-react';
 
 // Lazy-load 3D particle engine so showcase theater renders immediately
@@ -95,14 +94,13 @@ export default function ZeroGravityShowcase() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isUserPaused, setIsUserPaused] = useState(false);
-  const [viewMode, setViewMode] = useState('3d'); // '3d' | 'photo'
+  const viewMode = '3d'; // '3d' | 'photo'
   const [is3DInteracting, setIs3DInteracting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
   const [isFullscreenModalOpen, setIsFullscreenModalOpen] = useState(false);
 
   const slideDuration = 6500; // 6.5 seconds per slide for a relaxed luxury feel
-  const timerRef = useRef(null);
   const progressTimerRef = useRef(null);
   const showcaseRef = useRef(null);
   const thumbRefs = useRef([]);
@@ -141,29 +139,27 @@ export default function ZeroGravityShowcase() {
   // Auto-play timer (pauses when user is interacting with 3D Zero-G model, paused, or out of viewport)
   useEffect(() => {
     if (!isPlaying || !isInViewport || (currentIndex === 0 && viewMode === '3d' && is3DInteracting)) {
-      if (timerRef.current) clearInterval(timerRef.current);
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
       return;
     }
 
-    setProgress(0);
     const interval = 50;
     const step = (interval / slideDuration) * 100;
 
     progressTimerRef.current = setInterval(() => {
-      setProgress((prev) => (prev >= 100 ? 100 : prev + step));
+      setProgress((prev) => {
+        if (prev + step >= 100) {
+          setCurrentIndex((idx) => (idx + 1) % ZERO_GRAVITY_SLIDES.length);
+          return 0;
+        }
+        return prev + step;
+      });
     }, interval);
 
-    timerRef.current = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % ZERO_GRAVITY_SLIDES.length);
-      setProgress(0);
-    }, slideDuration);
-
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     };
-  }, [isPlaying, isInViewport, currentIndex, is3DInteracting, viewMode]);
+  }, [isPlaying, isInViewport, currentIndex, is3DInteracting, viewMode, slideDuration]);
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % ZERO_GRAVITY_SLIDES.length);

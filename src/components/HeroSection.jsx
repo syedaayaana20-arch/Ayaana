@@ -6,7 +6,7 @@ import LivingModelPortrait from './LivingModelPortrait';
 // Code-split heavy 3D WebGL viewers so the hero section renders instantly
 const ThreeHeroJar = React.lazy(() => import('./ThreeHeroJar'));
 const ThreeProductViewer = React.lazy(() => import('./ThreeProductViewer'));
-import { ArrowUpRight, Sparkles, MessageCircle, Droplets } from 'lucide-react';
+import { ArrowUpRight, Sparkles, MessageCircle } from 'lucide-react';
 import { BRAND_CONFIG } from '../data/products';
 
 export default function HeroSection({ onShopNowClick }) {
@@ -110,6 +110,7 @@ export default function HeroSection({ onShopNowClick }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '18px' }}>
           <span
             className="glow-hover-text"
+            onClick={onShopNowClick}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -122,7 +123,8 @@ export default function HeroSection({ onShopNowClick }) {
               fontWeight: 800,
               letterSpacing: '0.06em',
               boxShadow: '0 4px 14px rgba(226, 130, 159, 0.2)',
-              border: '1px solid rgba(226, 130, 159, 0.3)'
+              border: '1px solid rgba(226, 130, 159, 0.3)',
+              cursor: onShopNowClick ? 'pointer' : 'default'
             }}
           >
             <Sparkles style={{ width: '13px', height: '13px', color: '#C75678' }} />

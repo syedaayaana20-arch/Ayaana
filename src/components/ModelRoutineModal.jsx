@@ -1,6 +1,6 @@
 import React from 'react';
 import { useShop } from '../context/ShopContext';
-import { X, Sparkles, ShoppingBag, Eye, MessageCircle, Check, ArrowRight } from 'lucide-react';
+import { X, Sparkles, ShoppingBag, Eye, MessageCircle, ArrowRight } from 'lucide-react';
 
 export default function ModelRoutineModal() {
   const {

@@ -7,6 +7,14 @@ export default function ZeroGravityCanvasEngine({
   onInteractChange
 }) {
   const containerRef = useRef(null);
+  const accentColorRef = useRef(accentColor);
+  const onInteractChangeRef = useRef(onInteractChange);
+
+  useEffect(() => {
+    accentColorRef.current = accentColor;
+    onInteractChangeRef.current = onInteractChange;
+  }, [accentColor, onInteractChange]);
+
   const [particleSpeedMode, setParticleSpeedMode] = useState('gentle'); // 'gentle' | 'cosmic'
   const particleSpeedRef = useRef(1.0);
   const pulseTriggerRef = useRef(0);
@@ -90,7 +98,7 @@ export default function ZeroGravityCanvasEngine({
     });
 
     const petalMaterial2 = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#ECC1CC'),
+      color: new THREE.Color(accentColorRef.current || '#ECC1CC'),
       roughness: 0.45,
       metalness: 0.02,
       side: THREE.DoubleSide
@@ -331,8 +339,14 @@ export default function ZeroGravityCanvasEngine({
       }
     };
 
+    const handlePointerDown = () => onInteractChangeRef.current?.(true);
+    const handlePointerUp = () => onInteractChangeRef.current?.(false);
+
     container.addEventListener('mousemove', handlePointerMove);
     container.addEventListener('touchmove', handlePointerMove, { passive: true });
+    container.addEventListener('pointerdown', handlePointerDown);
+    container.addEventListener('pointerup', handlePointerUp);
+    container.addEventListener('pointerleave', handlePointerUp);
 
     // 5. 60FPS Zero-Gravity Physics Render Loop
     let animationFrameId;
@@ -447,6 +461,9 @@ export default function ZeroGravityCanvasEngine({
       window.removeEventListener('resize', handleResize);
       container.removeEventListener('mousemove', handlePointerMove);
       container.removeEventListener('touchmove', handlePointerMove);
+      container.removeEventListener('pointerdown', handlePointerDown);
+      container.removeEventListener('pointerup', handlePointerUp);
+      container.removeEventListener('pointerleave', handlePointerUp);
 
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);

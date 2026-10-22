@@ -21,16 +21,11 @@ import {
   Image,
   UploadCloud,
   Search,
-  ExternalLink,
   ShieldCheck,
-  Layers,
   GripVertical,
-  ArrowUp,
-  ArrowDown,
   Star,
   Settings2,
   Layout,
-  MessageSquarePlus,
   Sliders
 } from 'lucide-react';
 import { CATEGORIES } from '../data/products';
@@ -55,7 +50,6 @@ export default function AdminModal() {
     resetProductsToDefault,
     moveProductToFirst,
     moveProduct,
-    reorderProducts,
     recentOrders,
     updateOrderStatus,
     formatPrice,

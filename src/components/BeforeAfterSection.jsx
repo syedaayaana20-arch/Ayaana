@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { Sparkles, CheckCircle2, MessageCircle, Star, ShoppingBag, Eye, ShieldCheck } from 'lucide-react';
+import React from 'react';
+import { Sparkles, CheckCircle2, MessageCircle, Star, ShoppingBag, Eye } from 'lucide-react';
 import { BRAND_CONFIG } from '../data/products';
 import { useShop } from '../context/ShopContext';
 
 export default function BeforeAfterSection() {
   const { products, formatPrice, setActiveProduct, addToCart, setIsCartOpen } = useShop();
-  const [activeTab, setActiveTab] = useState('proof'); // 'proof' or 'details'
 
   // Look for the Hand and Feet Whitening Cream that matches the customer result
   const handCreamProduct = products.find(

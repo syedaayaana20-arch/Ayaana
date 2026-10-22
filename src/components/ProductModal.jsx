@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useShop } from '../context/ShopContext';
-import ThreeProductViewer from './ThreeProductViewer';
 import { X, Heart, Star, Plus, Minus, ShoppingBag, MessageCircle, Sparkles, Truck, ShieldCheck, ArrowRight } from 'lucide-react';
+
+const ThreeProductViewer = React.lazy(() => import('./ThreeProductViewer'));
 
 export default function ProductModal() {
   const {
@@ -216,7 +217,16 @@ export default function ProductModal() {
                 }}
               >
                 {viewMode === '3d' ? (
-                  <ThreeProductViewer productName={activeProduct.name} />
+                  <React.Suspense
+                    fallback={
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#9B948C', fontSize: '12px' }}>
+                        <Sparkles style={{ width: '20px', height: '20px', color: '#E2829F' }} />
+                        <span>Loading 3D Studio...</span>
+                      </div>
+                    }
+                  >
+                    <ThreeProductViewer productName={activeProduct.name} />
+                  </React.Suspense>
                 ) : (
                   <img
                     src={(Array.isArray(activeProduct.images) && activeProduct.images[selectedImageIndex]) || activeProduct.image}
