@@ -27,17 +27,31 @@ export default function CheckoutModal() {
   });
 
   const [confirmedOrder, setConfirmedOrder] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   if (!isCheckoutOpen) return null;
 
-  const handleSubmitOrder = (e) => {
+  const handleSubmitOrder = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.address) {
+    if (isSubmitting) return;
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.address.trim()) {
       alert("Please fill in your name, phone number, and delivery address.");
       return;
     }
+    if (formData.phone.replace(/[^0-9]/g, '').length < 10) {
+      alert("Please enter a valid phone number (at least 10 digits).");
+      return;
+    }
 
-    const order = placeOrder(formData);
+    setIsSubmitting(true);
+    setSubmitError('');
+    const { order, error } = await placeOrder(formData);
+    setIsSubmitting(false);
+    if (error || !order) {
+      setSubmitError(error || 'Something went wrong. Please try again.');
+      return;
+    }
     setConfirmedOrder(order);
 
     // Trigger celebratory luxury confetti
@@ -99,7 +113,7 @@ export default function CheckoutModal() {
             <div style={{ backgroundColor: 'var(--bg-surface)', padding: '20px', borderRadius: '16px', maxWidth: '460px', margin: '0 auto 24px auto', textAlign: 'left', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ color: '#736C65' }}>Tracking Number:</span>
-                <strong style={{ color: '#121212' }}>{confirmedOrder.trackingNo}</strong>
+                <strong style={{ color: '#121212' }}>{confirmedOrder.trackingNo || 'Shared once dispatched'}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ color: '#736C65' }}>Payment Method:</span>
@@ -295,13 +309,20 @@ export default function CheckoutModal() {
               </div>
             </div>
 
+            {submitError && (
+              <div role="alert" style={{ backgroundColor: '#FDE8ED', border: '1px solid #E2829F', color: '#C75678', padding: '10px 14px', borderRadius: '10px', fontSize: '12.5px', lineHeight: 1.4 }}>
+                {submitError}
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
               className="btn-primary"
-              style={{ width: '100%', padding: '14px', fontSize: '14.5px' }}
+              disabled={isSubmitting}
+              style={{ width: '100%', padding: '14px', fontSize: '14.5px', opacity: isSubmitting ? 0.7 : 1 }}
             >
-              <span>Confirm & Place Order</span>
+              <span>{isSubmitting ? 'Placing your order...' : 'Confirm & Place Order'}</span>
               <ArrowRight style={{ width: '16px', height: '16px' }} />
             </button>
           </form>

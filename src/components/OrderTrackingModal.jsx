@@ -2,32 +2,43 @@ import React, { useState } from 'react';
 import { useShop } from '../context/ShopContext';
 import { X, Search, Truck, CheckCircle2, PackageCheck, MapPin } from 'lucide-react';
 
+const STATUS_ORDER = ['Processing Order', 'In Transit', 'Out for Delivery', 'Delivered'];
+
 export default function OrderTrackingModal() {
-  const { isTrackingOpen, setIsTrackingOpen, recentOrders } = useShop();
-  const [searchId, setSearchId] = useState('');
-  const [activeOrder, setActiveOrder] = useState(() => recentOrders[0] || null);
+  const { isTrackingOpen, setIsTrackingOpen, recentOrders, trackOrder } = useShop();
+  const [searchId, setSearchId] = useState(() => recentOrders[0]?.orderId || '');
+  const [searchPhone, setSearchPhone] = useState(() => recentOrders[0]?.phone || '');
+  const [activeOrder, setActiveOrder] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
   if (!isTrackingOpen) return null;
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    const found = recentOrders.find(
-      (o) =>
-        o.orderId.toLowerCase() === searchId.trim().toLowerCase() ||
-        (o.trackingNo && o.trackingNo.toLowerCase() === searchId.trim().toLowerCase())
-    );
+    setSearchError('');
+    if (!searchId.trim() || searchPhone.replace(/[^0-9]/g, '').length < 10) {
+      setSearchError('Please enter your Order ID and the phone number you used at checkout.');
+      return;
+    }
+    setIsSearching(true);
+    const found = await trackOrder(searchId, searchPhone);
+    setIsSearching(false);
     if (found) {
       setActiveOrder(found);
     } else {
-      alert(`No order found matching "${searchId}". Try sample ID: AY-89241`);
+      setActiveOrder(null);
+      setSearchError('No order found with this Order ID and phone number.');
     }
   };
 
+  const isCancelled = activeOrder?.status === 'Cancelled';
+  const reached = Math.max(0, STATUS_ORDER.indexOf(activeOrder?.status));
   const steps = [
-    { title: "Order Confirmed", desc: "Formulation and batch verification", icon: CheckCircle2, done: true },
-    { title: "Packed in Luxury Gift Box", desc: "Carefully sealed with rose petal ribbon", icon: PackageCheck, done: true },
-    { title: "In Transit with Courier", desc: "Handed over to TCS Express / Trax Logistics", icon: Truck, done: true },
-    { title: "Out for Delivery", desc: "Rider on route to your doorstep", icon: MapPin, done: false }
+    { title: "Order Confirmed", desc: "Formulation and batch verification", icon: CheckCircle2, done: !isCancelled && reached >= 0 },
+    { title: "Packed in Luxury Gift Box", desc: "Carefully sealed with rose petal ribbon", icon: PackageCheck, done: !isCancelled && reached >= 1 },
+    { title: "In Transit with Courier", desc: "Handed over to our courier partner", icon: Truck, done: !isCancelled && reached >= 1 },
+    { title: "Out for Delivery", desc: "Rider on route to your doorstep", icon: MapPin, done: !isCancelled && reached >= 2 }
   ];
 
   return (
@@ -59,7 +70,22 @@ export default function OrderTrackingModal() {
               type="text"
               value={searchId}
               onChange={(e) => setSearchId(e.target.value)}
-              placeholder="Enter Order ID (e.g. AY-89241) or Tracking #"
+              placeholder="Order ID (e.g. AY-7K3QX9P2)"
+              style={{
+                flex: 1,
+                padding: '10px 16px',
+                borderRadius: '9999px',
+                border: '1px solid rgba(18, 18, 18, 0.15)',
+                fontSize: '13px',
+                outline: 'none',
+                backgroundColor: 'var(--bg-surface)'
+              }}
+            />
+            <input
+              type="tel"
+              value={searchPhone}
+              onChange={(e) => setSearchPhone(e.target.value)}
+              placeholder="Phone used at checkout"
               style={{
                 flex: 1,
                 padding: '10px 16px',
@@ -73,12 +99,19 @@ export default function OrderTrackingModal() {
             <button
               type="submit"
               className="btn-primary"
+              disabled={isSearching}
               style={{ padding: '10px 20px', fontSize: '13px' }}
             >
               <Search style={{ width: '14px', height: '14px' }} />
-              <span>Track</span>
+              <span>{isSearching ? 'Searching...' : 'Track'}</span>
             </button>
           </form>
+
+          {searchError && (
+            <div role="alert" style={{ backgroundColor: '#FDE8ED', border: '1px solid #E2829F', color: '#C75678', padding: '10px 14px', borderRadius: '10px', fontSize: '12.5px', marginBottom: '20px' }}>
+              {searchError}
+            </div>
+          )}
 
           {/* Active Order Tracking Result */}
           {activeOrder && (
@@ -94,7 +127,10 @@ export default function OrderTrackingModal() {
                   </span>
                 </div>
                 <div style={{ fontSize: '12px', color: '#736C65' }}>
-                  Courier: <strong>{activeOrder.courier}</strong> ({activeOrder.trackingNo}) • Expected Delivery: 24-48 Hours
+                  {activeOrder.courier
+                    ? <>Courier: <strong>{activeOrder.courier}</strong>{activeOrder.trackingNo ? ` (${activeOrder.trackingNo})` : ''} • </>
+                    : <>Courier details will be shared once dispatched • </>}
+                  Placed: {activeOrder.date}
                 </div>
               </div>
 

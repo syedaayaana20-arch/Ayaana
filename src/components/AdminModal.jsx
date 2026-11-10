@@ -50,7 +50,8 @@ export default function AdminModal() {
     resetProductsToDefault,
     moveProductToFirst,
     moveProduct,
-    recentOrders,
+    adminOrders,
+    refreshAdminData,
     updateOrderStatus,
     formatPrice,
     // Site Customization
@@ -70,6 +71,7 @@ export default function AdminModal() {
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Dashboard active tab: 'inventory', 'add-product', 'orders', 'admins', 'database'
   const [activeTab, setActiveTab] = useState('inventory');
@@ -142,19 +144,23 @@ export default function AdminModal() {
   const isSuperAdmin = currentAdminUser?.role === 'Super Admin';
 
   // Self Password Change Handler
-  const handleSelfPasswordChange = (e) => {
+  const handleSelfPasswordChange = async (e) => {
     e.preventDefault();
     setSelfPassSuccess('');
     setSelfPassError('');
-    if (!selfNewPass || selfNewPass.length < 6) {
-      setSelfPassError('New password must be at least 6 characters.');
+    if (!selfNewPass || selfNewPass.length < 8) {
+      setSelfPassError('New password must be at least 8 characters.');
       return;
     }
     if (selfNewPass !== selfConfirmPass) {
       setSelfPassError('Passwords do not match. Please verify.');
       return;
     }
-    updateAdminPassword(selfNewPass);
+    const res = await updateAdminPassword(selfNewPass);
+    if (!res.success) {
+      setSelfPassError(res.message || 'Could not update password. Please try again.');
+      return;
+    }
     setSelfPassSuccess('Your password was updated successfully!');
     setSelfNewPass('');
     setSelfConfirmPass('');
@@ -164,13 +170,17 @@ export default function AdminModal() {
   if (!isAdminOpen) return null;
 
   // --- Login Handler ---
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    const res = adminLogin(loginInput, passwordInput);
+    if (isLoggingIn) return;
+    setIsLoggingIn(true);
+    const res = await adminLogin(loginInput, passwordInput);
+    setIsLoggingIn(false);
     if (!res.success) {
       setLoginError(res.message);
     } else {
       setLoginError('');
+      setPasswordInput('');
     }
   };
 
@@ -310,18 +320,18 @@ export default function AdminModal() {
   };
 
   // --- Create Admin Handler ---
-  const handleCreateAdminSubmit = (e) => {
+  const handleCreateAdminSubmit = async (e) => {
     e.preventDefault();
     setAdminErrorMsg('');
     setAdminSuccessMsg('');
 
-    const res = addNewAdmin(newAdminData);
+    const res = await addNewAdmin(newAdminData);
     if (!res.success) {
       setAdminErrorMsg(res.message);
     } else {
-      setAdminSuccessMsg(`New admin account created for ${newAdminData.email}!`);
-      setNewAdminData({ name: '', email: '', password: '', role: 'Store Manager' });
-      setTimeout(() => setAdminSuccessMsg(''), 3000);
+      setAdminSuccessMsg(res.message);
+      setNewAdminData({ name: '', email: '', password: '', role: 'Store Admin' });
+      setTimeout(() => setAdminSuccessMsg(''), 8000);
     }
   };
 
@@ -342,7 +352,7 @@ export default function AdminModal() {
   });
 
   // Filtered orders
-  const filteredOrders = recentOrders.filter((ord) => {
+  const filteredOrders = adminOrders.filter((ord) => {
     if (orderStatusFilter === 'all') return true;
     return ord.status === orderStatusFilter;
   });
@@ -400,10 +410,11 @@ export default function AdminModal() {
 
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '6px' }}>
-                  Admin Email / Username
+                  Admin Email
                 </label>
                 <input
-                  type="text"
+                  type="email"
+                  autoComplete="username"
                   required
                   value={loginInput}
                   onChange={(e) => setLoginInput(e.target.value)}
@@ -427,6 +438,7 @@ export default function AdminModal() {
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     required
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
@@ -454,10 +466,11 @@ export default function AdminModal() {
               <button
                 type="submit"
                 className="btn-primary"
-                style={{ width: '100%', padding: '13px', fontSize: '13.5px', marginTop: '4px' }}
+                disabled={isLoggingIn}
+                style={{ width: '100%', padding: '13px', fontSize: '13.5px', marginTop: '4px', opacity: isLoggingIn ? 0.7 : 1 }}
               >
                 <Unlock style={{ width: '15px', height: '15px' }} />
-                <span>Log In</span>
+                <span>{isLoggingIn ? 'Checking...' : 'Log In'}</span>
               </button>
             </form>
           </div>
@@ -488,7 +501,7 @@ export default function AdminModal() {
                     </span>
                   </div>
                   <span style={{ fontSize: '11.5px', color: '#736C65' }}>
-                    Logged in as: <strong>{currentAdminUser?.name ? `${currentAdminUser.name} (${currentAdminUser.email})` : (currentAdminUser?.email || 'Syedaayaana20@gmail.com')}</strong>
+                    Logged in as: <strong>{currentAdminUser?.name ? `${currentAdminUser.name} (${currentAdminUser.email})` : (currentAdminUser?.email || '')}</strong>
                   </span>
                 </div>
               </div>
@@ -565,7 +578,7 @@ export default function AdminModal() {
               </button>
 
               <button
-                onClick={() => setActiveTab('orders')}
+                onClick={() => { setActiveTab('orders'); refreshAdminData(); }}
                 style={{
                   padding: '13px 16px',
                   border: 'none',
@@ -582,11 +595,11 @@ export default function AdminModal() {
                 }}
               >
                 <ShoppingBag style={{ width: '15px', height: '15px' }} />
-                <span>Orders ({recentOrders.length})</span>
+                <span>Orders ({adminOrders.length})</span>
               </button>
 
               <button
-                onClick={() => setActiveTab('admins')}
+                onClick={() => { setActiveTab('admins'); refreshAdminData(); }}
                 style={{
                   padding: '13px 16px',
                   border: 'none',
@@ -1167,7 +1180,7 @@ export default function AdminModal() {
                             cursor: 'pointer'
                           }}
                         >
-                          {status === 'all' ? `All Orders (${recentOrders.length})` : status}
+                          {status === 'all' ? `All Orders (${adminOrders.length})` : status}
                         </button>
                       ))}
                     </div>
@@ -1280,7 +1293,7 @@ export default function AdminModal() {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: '#121212' }}>
-                              {currentAdminUser?.name || 'Syeda Ayaana'}
+                              {currentAdminUser?.name || 'Admin'}
                             </h3>
                             <span style={{
                               fontSize: '11px',
@@ -1294,7 +1307,7 @@ export default function AdminModal() {
                             </span>
                           </div>
                           <div style={{ fontSize: '12.5px', color: '#736C65', marginTop: '2px' }}>
-                            {currentAdminUser?.email || 'Syedaayaana20@gmail.com'}
+                            {currentAdminUser?.email || ''}
                           </div>
                         </div>
                       </div>
@@ -1350,7 +1363,7 @@ export default function AdminModal() {
                       </h4>
                     </div>
                     <p style={{ fontSize: '12px', color: '#736C65', margin: '0 0 14px 0' }}>
-                      Update the password for your current account (<strong>{currentAdminUser?.email || 'Syedaayaana20@gmail.com'}</strong>).
+                      Update the password for your current account (<strong>{currentAdminUser?.email || ''}</strong>).
                     </p>
 
                     {selfPassSuccess && (
@@ -1447,13 +1460,13 @@ export default function AdminModal() {
                         </div>
 
                         <div>
-                          <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Password *</label>
+                          <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#121212', display: 'block', marginBottom: '4px' }}>Login Password</label>
                           <input
                             type="password"
-                            required
+                            autoComplete="new-password"
                             value={newAdminData.password}
                             onChange={(e) => setNewAdminData({ ...newAdminData, password: e.target.value })}
-                            placeholder="Create strong password"
+                            placeholder="Min 8 characters (optional)"
                             style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid rgba(18,18,18,0.18)', fontSize: '12.5px', outline: 'none' }}
                           />
                         </div>
@@ -1556,7 +1569,9 @@ export default function AdminModal() {
                               <button
                                 onClick={() => {
                                   if (confirm(`Remove admin account for ${adm.email}?`)) {
-                                    deleteAdmin(adm.id);
+                                    deleteAdmin(adm.id).then((res) => {
+                                      if (!res.success) alert(res.message);
+                                    });
                                   }
                                 }}
                                 style={{ background: 'none', border: 'none', color: '#C75678', cursor: 'pointer', padding: '6px' }}
@@ -1678,33 +1693,11 @@ export default function AdminModal() {
                     {showSqlSchema && (
                       <div style={{ marginTop: '10px', background: '#121212', color: '#A3E635', padding: '14px', borderRadius: '10px', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', maxHeight: '200px' }}>
                         <pre style={{ margin: 0 }}>
-{`-- Create tables in Supabase SQL Editor:
-CREATE TABLE public.admins (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    role TEXT DEFAULT 'Store Manager'
-);
-
-CREATE TABLE public.products (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    category TEXT NOT NULL,
-    price_pkr NUMERIC NOT NULL,
-    stock INTEGER DEFAULT 50,
-    image TEXT NOT NULL,
-    images JSONB DEFAULT '[]'::jsonb,
-    description TEXT
-);
-
-CREATE TABLE public.orders (
-    order_id TEXT PRIMARY KEY,
-    customer_name TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    total NUMERIC NOT NULL,
-    status TEXT DEFAULT 'Processing Order'
-);`}
+{`-- The full, secure schema lives in supabase_schema.sql in the project.
+-- Run that whole file in Supabase -> SQL Editor.
+--
+-- Admin logins are managed in Supabase -> Authentication -> Users.
+-- The admins table only lists which emails are admins (no passwords).`}
                         </pre>
                       </div>
                     )}
