@@ -28,7 +28,9 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
     setIsAdminOpen,
     isAdminLoggedIn,
     currentAdminUser,
-    products
+    products,
+    formatPrice,
+    setActiveProduct
   } = useShop();
 
 
@@ -49,12 +51,10 @@ export default function Navbar({ onCategorySelect, onScrollToSection }) {
   }, [isMobileMenuOpen]);
 
   // Filtered search results
-  const searchResults = searchQuery.trim()
-    ? products.filter(
-        (p) =>
-          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.tagline.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.categoryName.toLowerCase().includes(searchQuery.toLowerCase())
+  const query = searchQuery.trim().toLowerCase();
+  const searchResults = query
+    ? products.filter((p) =>
+        [p.name, p.tagline, p.categoryName].some((field) => (field || '').toLowerCase().includes(query))
       )
     : [];
 

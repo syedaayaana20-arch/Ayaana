@@ -1,6 +1,65 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PRODUCTS, BRAND_CONFIG } from '../data/products';
-import { supabaseQuery } from '../lib/supabase';
+import {
+  supabaseQuery,
+  getValidSession,
+  signInWithPassword,
+  signOut,
+  updateOwnPassword,
+  signUpUser
+} from '../lib/supabase';
+
+function mapDbToAdmin(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.role,
+    createdAt: (row.created_at || '').split('T')[0]
+  };
+}
+
+function mapDbToOrder(row) {
+  return {
+    orderId: row.order_id,
+    customerName: row.customer_name,
+    phone: row.phone,
+    whatsapp: row.whatsapp,
+    city: row.city,
+    address: row.address,
+    notes: row.notes,
+    paymentMethod: row.payment_method,
+    items: Array.isArray(row.items) ? row.items : [],
+    subtotal: Number(row.subtotal ?? row.total),
+    discount: Number(row.discount || 0),
+    shipping: Number(row.shipping || 0),
+    promoCode: row.promo_code,
+    total: Number(row.total),
+    currency: row.currency || 'PKR',
+    status: row.status,
+    date: (row.created_at || '').split('T')[0],
+    courier: row.courier,
+    trackingNo: row.tracking_no
+  };
+}
+
+// Look up the logged-in email in the admins table. Returns the admin or null.
+async function resolveAdminForSession(session) {
+  if (!session?.email) return null;
+  const { data, error } = await supabaseQuery(
+    `admins?select=id,name,email,role,created_at&email=eq.${encodeURIComponent(session.email.toLowerCase())}`
+  );
+  if (error || !Array.isArray(data) || data.length === 0) return null;
+  return mapDbToAdmin(data[0]);
+}
+
+// Unguessable order ID like AY-7K3QX9P2 (no 0/O/1/I to avoid confusion)
+function generateOrderId() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return 'AY-' + Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
+}
 
 const ShopContext = createContext();
 
@@ -370,104 +429,22 @@ export function ShopProvider({ children }) {
   const deleteReview = (reviewId) => setSiteReviews(prev => prev.filter(r => r.id !== reviewId));
   const updateReview = (reviewId, updates) => setSiteReviews(prev => prev.map(r => r.id === reviewId ? { ...r, ...updates } : r));
 
-  // Multiple Admin Management State
-  const [adminsList, setAdminsList] = useState(() => {
-    const defaultAdmins = [
-      {
-        id: 'admin-super-basit',
-        name: 'Basit Nayab',
-        email: 'basitmalix01@gmail.com',
-        password: 'Muhana5424@.',
-        role: 'Super Admin',
-        createdAt: '2026-09-26'
-      },
-      {
-        id: 'admin-syeda',
-        name: 'Syeda Ayaana',
-        email: 'Syedaayaana20@gmail.com',
-        password: 'Ayaanaali69$',
-        role: 'Store Admin',
-        createdAt: '2026-09-01'
-      }
-    ];
+  // Admin state. Login is checked by Supabase Auth; who is an admin comes from
+  // the `admins` table (see supabase_schema.sql). No passwords live in this code.
+  const [adminsList, setAdminsList] = useState([]);
+  const [currentAdminUser, setCurrentAdminUser] = useState(null);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [adminOrders, setAdminOrders] = useState([]);
 
-    const saved = localStorage.getItem('ayaana_admins_list');
-    if (!saved) return defaultAdmins;
-    try {
-      let parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed)) return defaultAdmins;
-
-      // Ensure Super Admin Basit is always present
-      if (!parsed.some((a) => a.email.toLowerCase() === 'basitmalix01@gmail.com')) {
-        parsed.unshift(defaultAdmins[0]);
-      }
-
-      // Ensure Syeda Ayaana (Store Admin) with exact user credentials is always present & up-to-date
-      const syedaIdx = parsed.findIndex((a) =>
-        a.email.toLowerCase() === 'syedaayaana20@gmail.com' || a.email.toLowerCase() === 'admin@ayaanas.com'
-      );
-      if (syedaIdx >= 0) {
-        parsed[syedaIdx] = {
-          ...parsed[syedaIdx],
-          name: 'Syeda Ayaana',
-          email: 'Syedaayaana20@gmail.com',
-          password: 'Ayaanaali69$',
-          role: 'Store Admin'
-        };
-      } else {
-        parsed.push(defaultAdmins[1]);
-      }
-
-      return parsed;
-    } catch {
-      return defaultAdmins;
-    }
-  });
-
-  const [currentAdminUser, setCurrentAdminUser] = useState(() => {
-    const saved = localStorage.getItem('ayaana_current_admin');
-    if (saved) {
-      try { return JSON.parse(saved); } catch { /* ignore */ }
-    }
-    return {
-      id: 'admin-syeda',
-      name: 'Syeda Ayaana',
-      email: 'Syedaayaana20@gmail.com',
-      role: 'Store Admin'
-    };
-  });
-
-  const [adminCredentials, setAdminCredentials] = useState(() => {
-    const saved = localStorage.getItem('ayaana_admin_creds');
-    return saved ? JSON.parse(saved) : { email: "Syedaayaana20@gmail.com", password: "Ayaanaali69$" };
-  });
-
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
-    return localStorage.getItem('ayaana_admin_logged_in') === 'true';
-  });
-
-  // Recent order state for tracking & confirmation
+  // Orders placed from this browser (lets a customer re-open their own order)
   const [recentOrders, setRecentOrders] = useState(() => {
-    const saved = localStorage.getItem('ayaana_orders');
-    return saved ? JSON.parse(saved) : [
-      {
-        orderId: "AY-89241",
-        customerName: "Ayesha Malik",
-        phone: "+92 300 1234567",
-        city: "Lahore",
-        address: "Gulberg III, Lahore",
-        paymentMethod: "Cash on Delivery (COD)",
-        items: [
-          { name: "Face Whitening Cream", volume: "50g", quantity: 1, pricePKR: 1199, priceUSD: 8.50 }
-        ],
-        total: 1199,
-        currency: "PKR",
-        status: "In Transit",
-        date: "2026-09-18",
-        courier: "TCS Express",
-        trackingNo: "TCS992014881"
-      }
-    ];
+    try {
+      const saved = JSON.parse(localStorage.getItem('ayaana_orders') || '[]');
+      // Drop the old demo order that used to be seeded here
+      return Array.isArray(saved) ? saved.filter((o) => o && o.orderId !== 'AY-89241') : [];
+    } catch {
+      return [];
+    }
   });
 
   // Sync to localStorage
@@ -528,21 +505,46 @@ export function ShopProvider({ children }) {
     localStorage.setItem('ayaana_orders', JSON.stringify(recentOrders));
   }, [recentOrders]);
 
+  // Wipe old insecure admin data (plaintext passwords) left in browsers
   useEffect(() => {
-    localStorage.setItem('ayaana_admins_list', JSON.stringify(adminsList));
-  }, [adminsList]);
+    ['ayaana_admins_list', 'ayaana_current_admin', 'ayaana_admin_creds', 'ayaana_admin_logged_in']
+      .forEach((key) => localStorage.removeItem(key));
+  }, []);
 
-  useEffect(() => {
-    localStorage.setItem('ayaana_current_admin', JSON.stringify(currentAdminUser));
-  }, [currentAdminUser]);
+  const loadAdminData = async () => {
+    const [adminsRes, ordersRes] = await Promise.all([
+      supabaseQuery('admins?select=id,name,email,role,created_at&order=created_at.asc'),
+      supabaseQuery('orders?select=*&order=created_at.desc')
+    ]);
+    if (!adminsRes.error && Array.isArray(adminsRes.data)) {
+      setAdminsList(adminsRes.data.map(mapDbToAdmin));
+    }
+    if (!ordersRes.error && Array.isArray(ordersRes.data)) {
+      setAdminOrders(ordersRes.data.map(mapDbToOrder));
+    } else if (ordersRes.error) {
+      console.warn('Could not load orders:', ordersRes.error);
+    }
+  };
 
+  // Restore an existing admin session on page load
   useEffect(() => {
-    localStorage.setItem('ayaana_admin_creds', JSON.stringify(adminCredentials));
-  }, [adminCredentials]);
-
-  useEffect(() => {
-    localStorage.setItem('ayaana_admin_logged_in', isAdminLoggedIn ? 'true' : 'false');
-  }, [isAdminLoggedIn]);
+    let cancelled = false;
+    (async () => {
+      const session = await getValidSession();
+      if (!session) return;
+      const admin = await resolveAdminForSession(session);
+      if (cancelled) return;
+      if (admin) {
+        setCurrentAdminUser(admin);
+        setIsAdminLoggedIn(true);
+        loadAdminData();
+      } else {
+        await signOut();
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Lock background body scroll when any modal or drawer is active
   useEffect(() => {
@@ -565,104 +567,83 @@ export function ShopProvider({ children }) {
     };
   }, [activeProduct, isCartOpen, isWishlistOpen, isCheckoutOpen, isTrackingOpen, isAdminOpen, isPortraitModalOpen]);
 
-  // Admin Auth Methods
-  const adminLogin = (emailOrUser, password) => {
-    const inputClean = (emailOrUser || '').trim().toLowerCase();
-    const passInput = (password || '').trim();
-
-    // 1. Direct match for Syeda Ayaana (Store Admin)
-    if (
-      (inputClean === 'syedaayaana20@gmail.com' ||
-        inputClean === 'syedaayaana20' ||
-        inputClean === 'syeda' ||
-        inputClean === 'ayaana' ||
-        inputClean === 'admin@ayaanas.com') &&
-      passInput === 'Ayaanaali69$'
-    ) {
-      const syedaUser = {
-        id: 'admin-syeda',
-        name: 'Syeda Ayaana',
-        email: 'Syedaayaana20@gmail.com',
-        role: 'Store Admin',
-        password: 'Ayaanaali69$',
-        createdAt: '2026-09-01'
-      };
-      setIsAdminLoggedIn(true);
-      setCurrentAdminUser(syedaUser);
-      setAdminCredentials({ email: syedaUser.email, password: syedaUser.password });
-      return { success: true, user: syedaUser };
+  // Admin Auth Methods (Supabase Auth)
+  const adminLogin = async (email, password) => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail.includes('@')) {
+      return { success: false, message: 'Please enter your admin email address.' };
     }
-
-    // 2. Direct match for Basit Nayab (Super Admin)
-    if (
-      (inputClean === 'basitmalix01@gmail.com' || inputClean === 'basit') &&
-      passInput === 'Muhana5424@.'
-    ) {
-      const superUser = {
-        id: 'admin-super-basit',
-        name: 'Basit Nayab',
-        email: 'basitmalix01@gmail.com',
-        role: 'Super Admin',
-        password: 'Muhana5424@.',
-        createdAt: '2026-09-26'
-      };
-      setIsAdminLoggedIn(true);
-      setCurrentAdminUser(superUser);
-      setAdminCredentials({ email: superUser.email, password: superUser.password });
-      return { success: true, user: superUser };
+    const { session, error } = await signInWithPassword(cleanEmail, password || '');
+    if (error || !session) {
+      const reason = (error?.message || '').toLowerCase();
+      if (reason.includes('not confirmed')) {
+        return { success: false, message: 'This email is not confirmed yet. In Supabase → Authentication → Users, open this user and confirm the email (or re-create it with "Auto Confirm User" ticked).' };
+      }
+      if (reason.includes('invalid login credentials')) {
+        return { success: false, message: 'Invalid email or password. Check that this user exists in Supabase → Authentication → Users with this exact email.' };
+      }
+      if (reason.includes('rate limit') || reason.includes('too many')) {
+        return { success: false, message: 'Too many login attempts. Please wait a few minutes and try again.' };
+      }
+      return { success: false, message: `Login failed: ${error?.message || 'unknown error'}` };
     }
-
-    // 3. Dynamic match against any registered admin in adminsList
-    const matchedAdmin = adminsList.find((admin) => {
-      const admEmail = admin.email.toLowerCase();
-      const admUsername = admEmail.split('@')[0];
-      const matchIdentity = inputClean === admEmail || inputClean === admUsername;
-      return matchIdentity && admin.password === passInput;
-    });
-
-    if (matchedAdmin) {
-      setIsAdminLoggedIn(true);
-      setCurrentAdminUser(matchedAdmin);
-      setAdminCredentials({ email: matchedAdmin.email, password: matchedAdmin.password });
-      return { success: true, user: matchedAdmin };
+    const admin = await resolveAdminForSession(session);
+    if (!admin) {
+      await signOut();
+      return { success: false, message: 'This account does not have admin access.' };
     }
-
-    return {
-      success: false,
-      message: "Invalid credentials. Please enter your valid email and password."
-    };
+    setCurrentAdminUser(admin);
+    setIsAdminLoggedIn(true);
+    loadAdminData();
+    return { success: true, user: admin };
   };
 
-  const adminLogout = () => {
+  const adminLogout = async () => {
     setIsAdminLoggedIn(false);
+    setCurrentAdminUser(null);
+    setAdminsList([]);
+    setAdminOrders([]);
+    await signOut();
   };
 
-  const addNewAdmin = (newAdmin) => {
+  const addNewAdmin = async (newAdmin) => {
     if (currentAdminUser?.role !== 'Super Admin') {
       return { success: false, message: "Security Notice: Only Super Admin has permission to create new admin accounts." };
     }
-    if (!newAdmin.email || !newAdmin.password) {
-      return { success: false, message: "Email and password are required." };
+    const emailClean = (newAdmin.email || '').trim().toLowerCase();
+    if (!emailClean.includes('@')) {
+      return { success: false, message: "A valid email is required." };
     }
-    const emailClean = newAdmin.email.trim().toLowerCase();
     if (adminsList.some((a) => a.email.toLowerCase() === emailClean)) {
       return { success: false, message: "An admin with this email already exists." };
     }
 
-    const createdAdmin = {
-      id: `admin-${Date.now()}`,
-      name: newAdmin.name?.trim() || emailClean.split('@')[0],
-      email: emailClean,
-      password: newAdmin.password,
-      role: newAdmin.role || 'Store Admin',
-      createdAt: new Date().toISOString().split('T')[0]
-    };
+    const { data, error } = await supabaseQuery('admins', {
+      method: 'POST',
+      body: {
+        name: newAdmin.name?.trim() || emailClean.split('@')[0],
+        email: emailClean,
+        role: newAdmin.role || 'Store Admin'
+      }
+    });
+    if (error) {
+      return { success: false, message: "Could not save admin to the database. Please try again." };
+    }
+    const created = Array.isArray(data) && data[0] ? mapDbToAdmin(data[0]) : null;
+    if (created) setAdminsList((prev) => [...prev, created]);
 
-    setAdminsList((prev) => [...prev, createdAdmin]);
-    return { success: true, admin: createdAdmin };
+    // Try to create their login. If public sign-ups are disabled in Supabase,
+    // the owner must add the user from the Supabase Dashboard instead.
+    const dashboardNote = ' Now create their login in Supabase Dashboard → Authentication → Users → Add user.';
+    let loginNote = dashboardNote;
+    if (newAdmin.password && newAdmin.password.length >= 8) {
+      const { error: signUpError } = await signUpUser(emailClean, newAdmin.password);
+      if (!signUpError) loginNote = ' Their login was created (they may need to confirm their email).';
+    }
+    return { success: true, admin: created, message: `Admin access added for ${emailClean}.${loginNote}` };
   };
 
-  const deleteAdmin = (adminId) => {
+  const deleteAdmin = async (adminId) => {
     if (currentAdminUser?.role !== 'Super Admin') {
       return { success: false, message: "Security Notice: Only Super Admin has permission to remove admin accounts." };
     }
@@ -672,17 +653,15 @@ export function ShopProvider({ children }) {
     if (currentAdminUser?.id === adminId) {
       return { success: false, message: "You cannot delete your own currently active account." };
     }
+    const { error } = await supabaseQuery(`admins?id=eq.${encodeURIComponent(adminId)}`, { method: 'DELETE' });
+    if (error) return { success: false, message: "Could not remove admin. Please try again." };
     setAdminsList((prev) => prev.filter((a) => a.id !== adminId));
     return { success: true };
   };
 
-  const updateAdminPassword = (newPassword) => {
-    setAdminCredentials((prev) => ({ ...prev, password: newPassword }));
-    if (currentAdminUser) {
-      setAdminsList((prev) =>
-        prev.map((a) => (a.id === currentAdminUser.id ? { ...a, password: newPassword } : a))
-      );
-    }
+  const updateAdminPassword = async (newPassword) => {
+    const { error } = await updateOwnPassword(newPassword);
+    if (error) return { success: false, message: error.message };
     return { success: true };
   };
 
@@ -872,10 +851,43 @@ export function ShopProvider({ children }) {
     });
   };
 
-  const updateOrderStatus = (orderId, newStatus) => {
-    setRecentOrders((prev) =>
+  const updateOrderStatus = async (orderId, newStatus) => {
+    const previous = adminOrders;
+    setAdminOrders((prev) =>
       prev.map((o) => (o.orderId === orderId ? { ...o, status: newStatus } : o))
     );
+    const { error } = await supabaseQuery(`orders?order_id=eq.${encodeURIComponent(orderId)}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: { status: newStatus }
+    });
+    if (error) {
+      console.warn('Order status update failed:', error);
+      setAdminOrders(previous);
+      return { success: false };
+    }
+    return { success: true };
+  };
+
+  // Customer order tracking: needs order ID + phone number used at checkout
+  const trackOrder = async (orderId, phone) => {
+    const { data, error } = await supabaseQuery('rpc/track_order', {
+      method: 'POST',
+      anonymous: true,
+      body: { p_order_id: (orderId || '').trim(), p_phone: phone || '' }
+    });
+    if (error || !Array.isArray(data) || data.length === 0) return null;
+    const row = data[0];
+    return {
+      orderId: row.order_id,
+      status: row.status,
+      courier: row.courier,
+      trackingNo: row.tracking_no,
+      total: Number(row.total),
+      currency: row.currency,
+      city: row.city,
+      date: (row.created_at || '').split('T')[0]
+    };
   };
 
   // Price formatting helper for dual currency (amountPKR, amountUSD)
@@ -991,7 +1003,7 @@ export function ShopProvider({ children }) {
       });
       return { success: true, message: `${promo.label} applied!` };
     }
-    return { success: false, message: "Invalid promo code. Try 'GLOW10' or 'AYAANA20'" };
+    return { success: false, message: "Invalid promo code." };
   };
 
   const removeCoupon = () => {
@@ -1001,6 +1013,28 @@ export function ShopProvider({ children }) {
 
   // WhatsApp Order Link Generator
   const generateWhatsAppOrderUrl = (customerDetails = null) => {
+    // An already-placed order: the cart is empty by now, so use the order itself
+    if (customerDetails?.orderId && Array.isArray(customerDetails.items)) {
+      const o = customerDetails;
+      const fmt = (v) => (o.currency === 'USD' ? `$${Number(v).toFixed(2)}` : `Rs. ${Math.round(Number(v)).toLocaleString()}`);
+      let msg = `*🌸 NEW ORDER #${o.orderId} - AYAANA'S LUXURY SKINCARE* 🌸\n\n*Items Ordered:*\n`;
+      o.items.forEach((item, idx) => {
+        const price = o.currency === 'USD' ? item.priceUSD : item.pricePKR;
+        msg += `${idx + 1}. *${item.name}* (${item.volume}) x ${item.quantity} = ${fmt(price * item.quantity)}\n`;
+      });
+      msg += `\n*Subtotal:* ${fmt(o.subtotal)}`;
+      if (o.discount > 0) msg += `\n*Discount${o.promoCode ? ` (${o.promoCode})` : ''}:* -${fmt(o.discount)}`;
+      msg += `\n*Shipping:* ${o.shipping > 0 ? fmt(o.shipping) : 'FREE Delivery'}`;
+      msg += `\n*Grand Total:* *${fmt(o.total)}*\n`;
+      msg += `\n*Customer Shipping Details:*`;
+      msg += `\n• *Name:* ${o.customerName}`;
+      msg += `\n• *Phone:* ${o.phone}`;
+      msg += `\n• *City:* ${o.city}`;
+      msg += `\n• *Delivery Address:* ${o.address}`;
+      msg += `\n• *Payment:* ${o.paymentMethod}`;
+      return `https://wa.me/${BRAND_CONFIG.whatsappNumber.replace('+', '')}?text=${encodeURIComponent(msg)}`;
+    }
+
     if (cart.length === 0) return `https://wa.me/${BRAND_CONFIG.whatsappNumber.replace('+', '')}`;
 
     let message = `*🌸 NEW ORDER - AYAANA'S LUXURY SKINCARE* 🌸\n\n`;
@@ -1042,31 +1076,70 @@ export function ShopProvider({ children }) {
     return `https://wa.me/${BRAND_CONFIG.whatsappNumber.replace('+', '')}?text=${encodeURIComponent(text)}`;
   };
 
-  // Place online order (creates mock order with tracking)
-  const placeOrder = (orderData) => {
-    const newOrderId = `AY-${Math.floor(10000 + Math.random() * 90000)}`;
+  // Place online order: saved to Supabase so the store admin sees it on any device
+  const placeOrder = async (orderData) => {
     const newOrder = {
-      orderId: newOrderId,
-      customerName: orderData.name,
-      phone: orderData.phone,
+      orderId: generateOrderId(),
+      customerName: orderData.name.trim(),
+      phone: orderData.phone.trim(),
+      whatsapp: (orderData.whatsapp || '').trim(),
       city: orderData.city,
-      address: orderData.address,
+      address: orderData.address.trim(),
+      notes: (orderData.notes || '').trim(),
       paymentMethod: orderData.paymentMethod || "Cash on Delivery (COD)",
-      items: [...cart],
+      items: cart.map((item) => ({
+        id: item.id,
+        name: item.name,
+        volume: item.volume,
+        quantity: item.quantity,
+        pricePKR: item.pricePKR,
+        priceUSD: item.priceUSD
+      })),
       subtotal: cartSubtotal,
       discount: discountAmount,
       shipping: shippingFee,
+      promoCode: appliedDiscount?.code || null,
       total: cartTotal,
       currency,
       status: "Processing Order",
       date: new Date().toISOString().split('T')[0],
-      courier: "TCS Express & Trax",
-      trackingNo: `TRX${Math.floor(10000000 + Math.random() * 90000000)}`
+      courier: null,
+      trackingNo: null
     };
 
-    setRecentOrders([newOrder, ...recentOrders]);
+    const { error } = await supabaseQuery('orders', {
+      method: 'POST',
+      prefer: 'return=minimal',
+      anonymous: true,
+      body: {
+        order_id: newOrder.orderId,
+        customer_name: newOrder.customerName,
+        phone: newOrder.phone,
+        whatsapp: newOrder.whatsapp || null,
+        city: newOrder.city,
+        address: newOrder.address,
+        notes: newOrder.notes || null,
+        payment_method: newOrder.paymentMethod,
+        items: newOrder.items,
+        subtotal: newOrder.subtotal,
+        discount: newOrder.discount,
+        shipping: newOrder.shipping,
+        promo_code: newOrder.promoCode,
+        total: newOrder.total,
+        currency: newOrder.currency,
+        status: newOrder.status
+      }
+    });
+
+    if (error) {
+      console.warn('Order save failed:', error);
+      return { order: null, error: "We couldn't place your order right now. Please try again or order on WhatsApp." };
+    }
+
+    setRecentOrders((prev) => [newOrder, ...prev].slice(0, 20));
     clearCart();
-    return newOrder;
+    setAppliedDiscount(null);
+    return { order: newOrder, error: null };
   };
 
   return (
@@ -1114,6 +1187,9 @@ export function ShopProvider({ children }) {
         isTrackingOpen,
         setIsTrackingOpen,
         adminsList,
+        adminOrders,
+        refreshAdminData: loadAdminData,
+        trackOrder,
         addNewAdmin,
         deleteAdmin,
         currentAdminUser,
@@ -1126,7 +1202,6 @@ export function ShopProvider({ children }) {
         isAdminLoggedIn,
         adminLogin,
         adminLogout,
-        adminCredentials,
         updateAdminPassword,
         recentOrders,
         updateOrderStatus,
