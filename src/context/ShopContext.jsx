@@ -575,7 +575,17 @@ export function ShopProvider({ children }) {
     }
     const { session, error } = await signInWithPassword(cleanEmail, password || '');
     if (error || !session) {
-      return { success: false, message: 'Invalid email or password.' };
+      const reason = (error?.message || '').toLowerCase();
+      if (reason.includes('not confirmed')) {
+        return { success: false, message: 'This email is not confirmed yet. In Supabase → Authentication → Users, open this user and confirm the email (or re-create it with "Auto Confirm User" ticked).' };
+      }
+      if (reason.includes('invalid login credentials')) {
+        return { success: false, message: 'Invalid email or password. Check that this user exists in Supabase → Authentication → Users with this exact email.' };
+      }
+      if (reason.includes('rate limit') || reason.includes('too many')) {
+        return { success: false, message: 'Too many login attempts. Please wait a few minutes and try again.' };
+      }
+      return { success: false, message: `Login failed: ${error?.message || 'unknown error'}` };
     }
     const admin = await resolveAdminForSession(session);
     if (!admin) {
